@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f0175948e5947d46aa890add8392500, type: 3}
+  m_Name: Preset_762x39
+  m_EditorClassIdentifier: Assembly-CSharp::BallisticSimulator.UI.BulletPreset
+  PresetName: 7.62x39 (AK-47)
+  MassGrams: 8
+  RadiusMm: 3.95
+  MuzzleVelocity: 65
+  Description: 

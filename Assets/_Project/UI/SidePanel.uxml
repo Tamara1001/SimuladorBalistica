@@ -1,0 +1,159 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <Style src="Styles/MilitaryDark.uss"/>
+    <ui:VisualElement name="root" class="root">
+
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!--                     PANEL LATERAL                      -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <ui:ScrollView name="side-panel" class="side-panel">
+
+            <!-- ── HEADER ── -->
+            <ui:VisualElement class="panel-header">
+                <ui:Label text="⬡ SIMULADOR BALÍSTICO" class="panel-title"/>
+                <ui:Label name="lbl-status" text="Listo para disparar" class="status-label"/>
+            </ui:VisualElement>
+
+            <!-- ══ SECCIÓN: MUNICIÓN ════════════════════════════ -->
+            <ui:Foldout text="🔫  MUNICIÓN" name="ammo-foldout" class="section-foldout" value="true">
+
+                <ui:VisualElement class="field-row">
+                    <ui:Label text="Preset" class="field-label"/>
+                    <ui:DropdownField name="preset-dropdown" class="dropdown"/>
+                </ui:VisualElement>
+
+                <!-- Ángulo -->
+                <ui:VisualElement class="field-row">
+                    <ui:Label text="Ángulo (°)" class="field-label"/>
+                    <ui:Slider name="angle-slider" low-value="0" high-value="90" value="10" class="param-slider"/>
+                    <ui:FloatField name="angle-field" value="10" class="param-field"/>
+                </ui:VisualElement>
+
+                <!-- Velocidad inicial -->
+                <ui:VisualElement class="field-row">
+                    <ui:Label text="Vel. Inicial (m/s)" class="field-label"/>
+                    <ui:Slider name="velocity-slider" low-value="10" high-value="500" value="45" class="param-slider"/>
+                    <ui:FloatField name="velocity-field" value="45" class="param-field"/>
+                </ui:VisualElement>
+
+                <!-- Masa -->
+                <ui:VisualElement class="field-row">
+                    <ui:Label text="Masa (g)" class="field-label"/>
+                    <ui:Slider name="mass-slider" low-value="0.5" high-value="100" value="8" class="param-slider"/>
+                    <ui:FloatField name="mass-field" value="8" class="param-field"/>
+                </ui:VisualElement>
+
+                <!-- Radio -->
+                <ui:VisualElement class="field-row">
+                    <ui:Label text="Radio (mm)" class="field-label"/>
+                    <ui:Slider name="radius-slider" low-value="1" high-value="30" value="4.5" class="param-slider"/>
+                    <ui:FloatField name="radius-field" value="4.5" class="param-field"/>
+                </ui:VisualElement>
+
+                <!-- Gravedad -->
+                <ui:VisualElement class="field-row">
+                    <ui:Label text="Gravedad (m/s²)" class="field-label"/>
+                    <ui:Slider name="gravity-slider" low-value="1" high-value="25" value="9.81" class="param-slider"/>
+                    <ui:FloatField name="gravity-field" value="9.81" class="param-field"/>
+                </ui:VisualElement>
+
+                <!-- Velocidad Simulación -->
+                <ui:VisualElement class="field-row">
+                    <ui:Label text="Vel. Simulación (x)" class="field-label"/>
+                    <ui:Slider name="timescale-slider" low-value="0.1" high-value="3.0" value="1.0" class="param-slider"/>
+                    <ui:FloatField name="timescale-field" value="1.0" class="param-field"/>
+                </ui:VisualElement>
+
+            </ui:Foldout>
+
+            <!-- ══ SECCIÓN: TARGETS ════════════════════════════ -->
+            <ui:Foldout text="📦  TARGETS" name="targets-foldout" class="section-foldout" value="true">
+
+                <!-- Filas -->
+                <ui:VisualElement class="field-row">
+                    <ui:Label text="Filas" class="field-label"/>
+                    <ui:SliderInt name="rows-slider" low-value="0" high-value="5" value="2" class="param-slider"/>
+                    <ui:IntegerField name="rows-field" value="2" class="param-field"/>
+                </ui:VisualElement>
+
+                <!-- Columnas -->
+                <ui:VisualElement class="field-row">
+                    <ui:Label text="Columnas" class="field-label"/>
+                    <ui:SliderInt name="cols-slider" low-value="0" high-value="5" value="3" class="param-slider"/>
+                    <ui:IntegerField name="cols-field" value="3" class="param-field"/>
+                </ui:VisualElement>
+
+                <!-- Profundidad -->
+                <ui:VisualElement class="field-row">
+                    <ui:Label text="Profundidad" class="field-label"/>
+                    <ui:SliderInt name="depth-slider" low-value="1" high-value="5" value="2" class="param-slider"/>
+                    <ui:IntegerField name="depth-field" value="2" class="param-field"/>
+                </ui:VisualElement>
+
+                <!-- Tamaño caja -->
+                <ui:VisualElement class="field-row">
+                    <ui:Label text="Tamaño (m)" class="field-label"/>
+                    <ui:Slider name="boxsize-slider" low-value="0.1" high-value="3" value="1" class="param-slider"/>
+                    <ui:FloatField name="boxsize-field" value="1" class="param-field"/>
+                </ui:VisualElement>
+
+                <!-- Masa caja -->
+                <ui:VisualElement class="field-row">
+                    <ui:Label text="Masa caja (kg)" class="field-label"/>
+                    <ui:Slider name="boxmass-slider" low-value="0.5" high-value="500" value="20" class="param-slider"/>
+                    <ui:FloatField name="boxmass-field" value="20" class="param-field"/>
+                </ui:VisualElement>
+
+                <!-- Distancia -->
+                <ui:VisualElement class="field-row">
+                    <ui:Label text="Distancia (m)" class="field-label"/>
+                    <ui:Slider name="boxdist-slider" low-value="5" high-value="150" value="35" class="param-slider"/>
+                    <ui:FloatField name="boxdist-field" value="35" class="param-field"/>
+                </ui:VisualElement>
+
+                <ui:Label text="(0 filas o columnas = sin targets)" class="hint-label"/>
+
+            </ui:Foldout>
+
+            <!-- ══ SECCIÓN: RESULTADOS ════════════════════════════ -->
+            <ui:Foldout text="📊  ÚLTIMO DISPARO" name="results-foldout" class="section-foldout" value="true">
+                <ui:Label name="lbl-range"      text="Rango: —" class="result-label"/>
+                <ui:Label name="lbl-maxheight"  text="Alt. máx: —" class="result-label"/>
+                <ui:Label name="lbl-flighttime" text="T. vuelo: —" class="result-label"/>
+            </ui:Foldout>
+
+            <!-- ══ SECCIÓN: BATCH TESTING ════════════════════════ -->
+            <ui:Foldout text="⚙  BATCH TESTING" name="batch-foldout" class="section-foldout" value="false">
+
+                <ui:Label text="Ángulo (°)" class="subsection-label"/>
+                <ui:VisualElement class="triple-row">
+                    <ui:FloatField name="batch-angle-min"  label="Mín"  value="10" class="batch-field"/>
+                    <ui:FloatField name="batch-angle-max"  label="Máx"  value="80" class="batch-field"/>
+                    <ui:FloatField name="batch-angle-step" label="Paso" value="10" class="batch-field"/>
+                </ui:VisualElement>
+
+                <ui:Label text="Vel. Inicial (m/s)" class="subsection-label"/>
+                <ui:VisualElement class="triple-row">
+                    <ui:FloatField name="batch-vel-min"  label="Mín"  value="100" class="batch-field"/>
+                    <ui:FloatField name="batch-vel-max"  label="Máx"  value="100" class="batch-field"/>
+                    <ui:FloatField name="batch-vel-step" label="Paso" value="1"   class="batch-field"/>
+                </ui:VisualElement>
+
+                <ui:Button name="btn-batch-run" text="▶ EJECUTAR BATCH" class="btn-batch"/>
+                <ui:Label name="lbl-batch-status" text="" class="hint-label"/>
+
+            </ui:Foldout>
+
+            <!-- ══ ACCIONES ════════════════════════════════════ -->
+            <ui:VisualElement class="action-bar">
+                <ui:Button name="btn-fire"   text="🔥 DISPARAR"   class="btn-fire"/>
+                <ui:Button name="btn-pause"  text="⏸ PAUSAR"     class="btn-secondary"/>
+                <ui:Button name="btn-step"   text="⏭ STEP"       class="btn-secondary"/>
+                <ui:Button name="btn-reset"  text="↺ RESET"       class="btn-secondary"/>
+                <ui:Button name="btn-export" text="💾 EXPORTAR CSV" class="btn-export"/>
+            </ui:VisualElement>
+
+        </ui:ScrollView>
+
+    </ui:VisualElement>
+</ui:UXML>

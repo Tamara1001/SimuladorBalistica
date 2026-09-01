@@ -1,0 +1,321 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   SIMULADOR BALÍSTICO — Estilo Militar Oscuro
+   Paleta: fondo #0d1117 | panel #161b22 | acento #39d353 (verde militar)
+           texto principal #e6edf3 | texto secundario #7d8590
+           borde #30363d | warning #d29922 | peligro #f85149
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Variables (custom properties via USS) ───────────────────────────────── */
+:root {
+    --col-bg:         #0d1117;
+    --col-panel:      #161b22;
+    --col-panel-alt:  #1c2128;
+    --col-border:     #30363d;
+    --col-accent:     #39d353;
+    --col-accent-dim: #1a6628;
+    --col-text:       #e6edf3;
+    --col-text-dim:   #7d8590;
+    --col-danger:     #f85149;
+    --col-warn:       #d29922;
+    --col-fire:       #ff6b35;
+    --radius-sm:      3px;
+    --radius-md:      6px;
+}
+
+/* ── Root ────────────────────────────────────────────────────────────────── */
+.root {
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0);
+}
+
+/* ── Panel lateral ───────────────────────────────────────────────────────── */
+.side-panel {
+    width: 340px;
+    min-width: 280px;
+    max-width: 400px;
+    height: 100%;
+    background-color: var(--col-panel);
+    border-right-color: var(--col-accent-dim);
+    border-right-width: 1px;
+    padding: 0 0 16px 0;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.panel-header {
+    background-color: #0a0f14;
+    border-bottom-color: var(--col-accent);
+    border-bottom-width: 1px;
+    padding: 12px 16px 10px 16px;
+    margin-bottom: 8px;
+}
+
+.panel-title {
+    font-size: 13px;
+    color: var(--col-accent);
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+}
+
+.status-label {
+    font-size: 11px;
+    color: var(--col-text-dim);
+    -unity-font-style: italic;
+}
+
+/* ── Foldouts (secciones colapsables) ────────────────────────────────────── */
+.section-foldout {
+    margin: 4px 8px;
+    border-width: 1px;
+    border-color: var(--col-border);
+    border-radius: var(--radius-md);
+    background-color: var(--col-panel-alt);
+    padding: 0;
+}
+
+.section-foldout > Toggle {
+    background-color: #1c2128;
+    border-bottom-color: var(--col-border);
+    border-bottom-width: 1px;
+    padding: 8px 12px;
+    color: var(--col-accent);
+    font-size: 11px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+}
+
+.section-foldout > Toggle:hover {
+    background-color: var(--col-accent-dim);
+}
+
+/* ── Filas de parámetros ─────────────────────────────────────────────────── */
+.field-row {
+    flex-direction: row;
+    align-items: center;
+    padding: 5px 12px;
+    border-bottom-color: var(--col-border);
+    border-bottom-width: 0px;
+}
+
+.field-row:hover {
+    background-color: rgba(57, 211, 83, 0.04);
+}
+
+.field-label {
+    width: 115px;
+    min-width: 115px;
+    font-size: 11px;
+    color: var(--col-text-dim);
+    -unity-text-align: middle-left;
+}
+
+/* ── Sliders ─────────────────────────────────────────────────────────────── */
+.param-slider {
+    flex-grow: 1;
+    margin: 0 6px;
+}
+
+.param-slider > .unity-base-slider__tracker {
+    background-color: var(--col-border);
+    border-radius: 2px;
+    height: 3px;
+}
+
+.param-slider > .unity-base-slider__dragger {
+    background-color: var(--col-accent);
+    border-color: var(--col-accent);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    top: -5px;
+}
+
+.param-slider > .unity-base-slider__dragger:hover {
+    background-color: white;
+    border-color: var(--col-accent);
+    scale: 1.2 1.2;
+}
+
+/* ── Campos numéricos ────────────────────────────────────────────────────── */
+.param-field {
+    width: 62px;
+    min-width: 62px;
+}
+
+.param-field > .unity-text-field__input,
+.param-field > TextInput {
+    background-color: #0d1117;
+    border-color: var(--col-border);
+    border-width: 1px;
+    border-radius: var(--radius-sm);
+    color: var(--col-accent);
+    font-size: 11px;
+    padding: 2px 4px;
+    -unity-font-style: bold;
+}
+
+.param-field > .unity-text-field__input:focus,
+.param-field > TextInput:focus {
+    border-color: var(--col-accent);
+    background-color: #0a0f14;
+}
+
+/* ── Dropdown ────────────────────────────────────────────────────────────── */
+.dropdown {
+    flex-grow: 1;
+    background-color: #0d1117;
+    border-color: var(--col-border);
+    border-width: 1px;
+    border-radius: var(--radius-sm);
+    color: var(--col-text);
+    font-size: 11px;
+}
+
+.dropdown:hover {
+    border-color: var(--col-accent);
+}
+
+/* ── Labels de resultado ─────────────────────────────────────────────────── */
+.result-label {
+    font-size: 12px;
+    color: var(--col-text);
+    padding: 4px 12px;
+    -unity-font-style: bold;
+}
+
+/* ── Hints ───────────────────────────────────────────────────────────────── */
+.hint-label {
+    font-size: 10px;
+    color: var(--col-text-dim);
+    padding: 4px 12px 6px 12px;
+    -unity-font-style: italic;
+}
+
+.subsection-label {
+    font-size: 10px;
+    color: var(--col-text-dim);
+    padding: 6px 12px 2px 12px;
+    letter-spacing: 1px;
+}
+
+/* ── Triple row (batch) ──────────────────────────────────────────────────── */
+.triple-row {
+    flex-direction: row;
+    padding: 4px 12px;
+    justify-content: space-between;
+}
+
+.batch-field {
+    flex-grow: 1;
+    margin: 0 4px;
+}
+
+.batch-field Label {
+    font-size: 10px;
+    color: var(--col-text-dim);
+}
+
+.batch-field > .unity-text-field__input {
+    background-color: #0d1117;
+    border-color: var(--col-border);
+    border-width: 1px;
+    border-radius: var(--radius-sm);
+    color: var(--col-warn);
+    font-size: 11px;
+}
+
+/* ── Barra de acciones ───────────────────────────────────────────────────── */
+.action-bar {
+    margin: 12px 8px 4px 8px;
+    flex-direction: column;
+}
+
+/* Botón principal — Disparar */
+.btn-fire {
+    height: 42px;
+    background-color: var(--col-fire);
+    border-color: #c94e22;
+    border-width: 1px;
+    border-radius: var(--radius-md);
+    color: white;
+    font-size: 13px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+    transition-property: background-color, scale;
+    transition-duration: 0.1s;
+}
+
+.btn-fire:hover {
+    background-color: #ff8c5a;
+    scale: 1.01 1.01;
+}
+
+.btn-fire:active {
+    background-color: #c94e22;
+    scale: 0.99 0.99;
+}
+
+.btn-fire:disabled {
+    background-color: #4a2515;
+    color: rgba(255,255,255,0.3);
+}
+
+/* Botones secundarios */
+.btn-secondary {
+    height: 32px;
+    background-color: var(--col-panel-alt);
+    border-color: var(--col-border);
+    border-width: 1px;
+    border-radius: var(--radius-sm);
+    color: var(--col-text);
+    font-size: 11px;
+    margin-bottom: 4px;
+}
+
+.btn-secondary:hover {
+    background-color: var(--col-accent-dim);
+    border-color: var(--col-accent);
+    color: var(--col-accent);
+}
+
+.btn-secondary:disabled {
+    color: var(--col-text-dim);
+    background-color: var(--col-panel);
+    border-color: #21262d;
+}
+
+/* Botón batch */
+.btn-batch {
+    height: 32px;
+    background-color: #1a2330;
+    border-color: var(--col-warn);
+    border-width: 1px;
+    border-radius: var(--radius-sm);
+    color: var(--col-warn);
+    font-size: 11px;
+    -unity-font-style: bold;
+    margin: 6px 12px 4px 12px;
+}
+
+.btn-batch:hover {
+    background-color: #2a3040;
+}
+
+/* Botón exportar CSV */
+.btn-export {
+    height: 32px;
+    background-color: var(--col-panel-alt);
+    border-color: var(--col-accent-dim);
+    border-width: 1px;
+    border-radius: var(--radius-sm);
+    color: var(--col-accent);
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+.btn-export:hover {
+    background-color: var(--col-accent-dim);
+}
