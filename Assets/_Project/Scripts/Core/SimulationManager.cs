@@ -83,7 +83,20 @@ namespace BallisticSimulator.Core
         {
             // Rotar el modelo 3D del cañón según el ángulo actual
             if (_gunBaseTransform != null)
-                _gunBaseTransform.localRotation = Quaternion.Euler(0f, 0f, AngleDegrees);
+            {
+                // Si el objeto asignado tiene un hijo 'CannonPivot' o es el pivot en sí, rotar adecuadamente
+                Transform pivotToRotate = _gunBaseTransform.name == "CannonPivot" ? 
+                    _gunBaseTransform : _gunBaseTransform.Find("CannonPivot");
+
+                if (pivotToRotate != null)
+                {
+                    pivotToRotate.localRotation = Quaternion.Euler(0f, 0f, AngleDegrees);
+                }
+                else
+                {
+                    _gunBaseTransform.localRotation = Quaternion.Euler(0f, 0f, AngleDegrees);
+                }
+            }
 
             if (_trajectoryPreview == null || _muzzleTransform == null) return;
             if (GameStateManager.Instance != null && !GameStateManager.Instance.IsSetup) return;

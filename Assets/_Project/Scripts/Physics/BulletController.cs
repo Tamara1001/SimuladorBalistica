@@ -38,6 +38,27 @@ namespace BallisticSimulator.Physics
 
         // ── API pública ───────────────────────────────────────────────────────────
 
+        private TrailRenderer _trail;
+
+        private void Awake()
+        {
+            _trail = GetComponent<TrailRenderer>();
+            if (_trail == null)
+            {
+                _trail = gameObject.AddComponent<TrailRenderer>();
+                _trail.time = 0.4f;
+                _trail.startWidth = 0.3f;
+                _trail.endWidth = 0.05f;
+                _trail.material = new Material(Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Sprites/Default"));
+                _trail.material.color = new Color(0.2f, 1f, 0.4f);
+                if (_trail.material.HasProperty("_EmissionColor"))
+                {
+                    _trail.material.EnableKeyword("_EMISSION");
+                    _trail.material.SetColor("_EmissionColor", new Color(0.2f, 2f, 0.5f) * 2f);
+                }
+            }
+        }
+
         /// <summary>Inicia el vuelo de la bala desde <see cref="Origin"/>.</summary>
         public void Launch(float groundY = 0f)
         {
@@ -46,6 +67,8 @@ namespace BallisticSimulator.Physics
             _flying          = true;
             _paused          = false;
             MaxHeightReached = 0f;
+
+            if (_trail != null) _trail.Clear();
 
             transform.position   = Origin;
             // Escala visual aumentada para que la bala sea claramente visible en 3D

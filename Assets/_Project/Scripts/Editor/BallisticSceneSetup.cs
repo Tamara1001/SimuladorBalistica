@@ -163,27 +163,31 @@ public static class BallisticSceneSetup
 
         // ── CAMERAS ───────────────────────────────────────────────────────────
         // ── CAMERAS ───────────────────────────────────────────────────────────
-        // Cámara de setup (fija) - VISTA LATERAL ORBITABLE
+        // Cámara de setup (fija) - CONFIGURACIÓN EXACTA DEL INSPECTOR
         var setupCamGO = GetOrCreate("SetupCamera", grpCameras.transform);
         var setupCam   = GetOrAddComponent<UnityEngine.Camera>(setupCamGO);
         GetOrAddComponent<SetupCameraController>(setupCamGO);
         setupCamGO.tag = "MainCamera";
         setupCamGO.transform.SetPositionAndRotation(
-            new Vector3(12f, 6f, -30f),
-            Quaternion.Euler(8f, 15f, 0f));
+            new Vector3(-10f, 2.25f, -11.5f),
+            Quaternion.Euler(3.5f, 57f, 0f));
 
         // Cámara libre (empieza desactivada)
         var freeCamGO = GetOrCreate("FreeCamera", grpCameras.transform);
         GetOrAddComponent<UnityEngine.Camera>(freeCamGO);
         GetOrAddComponent<FreeCameraController>(freeCamGO);
         freeCamGO.transform.SetPositionAndRotation(
-            new Vector3(12f, 6f, -30f),
-            Quaternion.Euler(8f, 15f, 0f));
+            new Vector3(-10f, 2.25f, -11.5f),
+            Quaternion.Euler(3.5f, 57f, 0f));
         freeCamGO.SetActive(false);
 
         // Gestor de cámaras
         var camMgrGO = GetOrCreate("CameraManagerGO", grpCameras.transform);
         GetOrAddComponent<CameraManager>(camMgrGO);
+
+        // Eliminar CameraDebugger si existía para que F1 no aparezca al iniciar
+        var oldDebugger = camMgrGO.GetComponent<CameraDebugger>();
+        if (oldDebugger != null) UnityEngine.Object.DestroyImmediate(oldDebugger);
 
         // Desactivar o destruir la Main Camera por defecto si existe (evita conflictos)
         var defaultMainCam = GameObject.Find("Main Camera");
@@ -212,7 +216,7 @@ public static class BallisticSceneSetup
         if (groundMat != null)
             ground.GetComponent<MeshRenderer>().sharedMaterial = groundMat;
 
-        // Luz direccional (reusar la existente)
+        // Luz direccional cibernética
         var existingLight = UnityEngine.Object.FindFirstObjectByType<Light>();
         if (existingLight == null)
         {
@@ -220,61 +224,139 @@ public static class BallisticSceneSetup
             lightGO.transform.SetParent(grpEnvironment.transform, false);
             var lt       = lightGO.AddComponent<Light>();
             lt.type      = LightType.Directional;
-            lt.intensity = 1f;
-            lt.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
+            lt.intensity = 1.2f;
+            lt.color     = new Color(0.8f, 0.95f, 0.9f);
+            lt.transform.rotation = Quaternion.Euler(45f, -40f, 0f);
             Undo.RegisterCreatedObjectUndo(lightGO, "Create Light");
         }
         else
         {
+            existingLight.intensity = 1.2f;
+            existingLight.color     = new Color(0.8f, 0.95f, 0.9f);
             existingLight.transform.SetParent(grpEnvironment.transform, true);
+        }
+
+        // Global Volume para Post-Processing (Bloom + Vignette)
+        var volumeGO = GetOrCreate("GlobalPostProcessingVolume", grpEnvironment.transform);
+        var volume   = GetOrAddComponent<UnityEngine.Rendering.Volume>(volumeGO);
+        volume.isGlobal = true;
+
+        if (volume.profile == null)
+        {
+            var profile = ScriptableObject.CreateInstance<UnityEngine.Rendering.VolumeProfile>();
+            profile.name = "BallisticPostProcessProfile";
+
+            // Bloom para hacer brillar la trayectoria neón y las luces UI/cañón
+            var bloom = profile.Add<UnityEngine.Rendering.Universal.Bloom>(true);
+            bloom.intensity.Override(1.5f);
+            bloom.threshold.Override(0.7f);
+            bloom.tint.Override(new Color(0.2f, 1f, 0.4f));
+
+            // Vignette táctico
+            var vignette = profile.Add<UnityEngine.Rendering.Universal.Vignette>(true);
+            vignette.intensity.Override(0.35f);
+            vignette.smoothness.Override(0.5f);
+            vignette.color.Override(new Color(0f, 0.05f, 0.02f));
+
+            string profilePath = $"{k_Root}/BallisticPostProcessProfile.asset";
+            AssetDatabase.CreateAsset(profile, profilePath);
+            volume.profile = profile;
         }
 
         // ── GUN ──────────────────────────────────────────────────────────────
         var gunBase = GetOrCreate("GunBase", grpGun.transform);
-        gunBase.transform.localPosition = new Vector3(0f, 1.5f, 0f);
 
-        // Limpiar cualquier objeto viejo dentro de GunBase para evitar cañones duplicados
-        for (int i = gunBase.transform.childCount - 1; i >= 0; i--)
+        // Buscar si ya existe CannonPivot en la escena (o cualquier cañón configurado)
+        var cannonPivot = FindInScene("CannonPivot");
+        if (cannonPivot != null)
         {
-            UnityEngine.Object.DestroyImmediate(gunBase.transform.GetChild(i).gameObject);
+            // Preservar la jerarquía existente que configuró el usuario
+            cannonPivot.transform.SetParent(gunBase.transform, true);
+
+            var muzzleTransform = cannonPivot.transform.Find("Muzzle");
+            if (muzzleTransform == null)
+            {
+                var muzzleGO = new GameObject("Muzzle");
+                muzzleGO.transform.SetParent(cannonPivot.transform, false);
+                muzzleGO.transform.localPosition = new Vector3(3.5f, 0f, 0f);
+            }
         }
+        else if (gunBase.transform.childCount > 0)
+        {
+            // Si GunBase ya tiene elementos (ej. Circus_Cannon desarmado o personalizado), buscar "Cannon" o crear CannonPivot alrededor
+            var cannonMesh = FindInScene("Cannon");
+            if (cannonMesh != null)
+            {
+                var newPivot = new GameObject("CannonPivot");
+                newPivot.transform.SetParent(gunBase.transform, false);
+                newPivot.transform.localPosition = new Vector3(0f, 0.2f, 0.5f);
 
-        var gunMat = GetOrCreateMaterial(
-            "Mat_GunMetal", "Universal Render Pipeline/Lit",
-            new Color(0.2f, 0.22f, 0.25f), $"{k_Materials}/Mat_GunMetal.mat");
+                cannonMesh.transform.SetParent(newPivot.transform, true);
 
-        // Base/Pedestal estático (RECTÁNGULO: no rota)
-        var stand     = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        stand.name    = "Stand";
-        stand.transform.SetParent(gunBase.transform, false);
-        stand.transform.localPosition = new Vector3(0.5f, -0.6f, 0f);
-        stand.transform.localScale    = new Vector3(3.5f, 1.0f, 1.8f);
-        stand.GetComponent<MeshRenderer>().sharedMaterial = gunMat;
-        UnityEngine.Object.DestroyImmediate(stand.GetComponent<BoxCollider>());
-        Undo.RegisterCreatedObjectUndo(stand, "Create Stand");
+                var muzzleGO = new GameObject("Muzzle");
+                muzzleGO.transform.SetParent(newPivot.transform, false);
+                muzzleGO.transform.localPosition = new Vector3(3.5f, 0f, 0f);
+            }
+        }
+        else
+        {
+            // Solo si GunBase está totalmente vacío y no hay cañón en escena, instanciar por defecto
+            var cannonPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{k_Prefabs}/Circus_Cannon.prefab");
 
-        // Pivot giratorio del cañón (único objeto que rota con el ángulo)
-        var cannonPivot = new GameObject("CannonPivot");
-        cannonPivot.transform.SetParent(gunBase.transform, false);
-        cannonPivot.transform.localPosition = Vector3.zero;
-        Undo.RegisterCreatedObjectUndo(cannonPivot, "Create CannonPivot");
+            if (cannonPrefab != null)
+            {
+                var cannonInstance = (GameObject)PrefabUtility.InstantiatePrefab(cannonPrefab, gunBase.transform);
+                cannonInstance.name = "Circus_Cannon_Instance";
+                cannonInstance.transform.localPosition = Vector3.zero;
+                cannonInstance.transform.localRotation = Quaternion.identity;
+                cannonInstance.transform.localScale = Vector3.one * 0.4f;
 
-        // Muzzle: Nace EXACTAMENTE en la base/pivot que rota (altura de referencia)
-        var muzzle = new GameObject("Muzzle");
-        muzzle.transform.SetParent(cannonPivot.transform, false);
-        muzzle.transform.localPosition = Vector3.zero;
-        Undo.RegisterCreatedObjectUndo(muzzle, "Create Muzzle");
+                var newPivot = new GameObject("CannonPivot");
+                newPivot.transform.SetParent(gunBase.transform, false);
+                newPivot.transform.localPosition = new Vector3(0f, 0.2f, 0.5f);
 
-        // Modelo visual ÚNICO del cañón (Cilindro gran calibre: 1.2m diam × 5m largo)
-        var barrel     = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        barrel.name    = "Barrel";
-        barrel.transform.SetParent(cannonPivot.transform, false);
-        barrel.transform.localPosition = new Vector3(2.5f, 0f, 0f);
-        barrel.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
-        barrel.transform.localScale    = new Vector3(1.2f, 2.5f, 1.2f);
-        barrel.GetComponent<MeshRenderer>().sharedMaterial = gunMat;
-        UnityEngine.Object.DestroyImmediate(barrel.GetComponent<CapsuleCollider>());
-        Undo.RegisterCreatedObjectUndo(barrel, "Create Barrel");
+                var muzzle = new GameObject("Muzzle");
+                muzzle.transform.SetParent(newPivot.transform, false);
+                muzzle.transform.localPosition = new Vector3(3.5f, 0f, 0f);
+
+                var barrelTransform = cannonInstance.transform.Find("Cannon");
+                if (barrelTransform != null)
+                {
+                    barrelTransform.SetParent(newPivot.transform, true);
+                }
+            }
+            else
+            {
+                var gunMat = GetOrCreateMaterial(
+                    "Mat_GunMetal", "Universal Render Pipeline/Lit",
+                    new Color(0.2f, 0.22f, 0.25f), $"{k_Materials}/Mat_GunMetal.mat");
+
+                var stand     = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                stand.name    = "Stand";
+                stand.transform.SetParent(gunBase.transform, false);
+                stand.transform.localPosition = new Vector3(0.5f, -0.6f, 0f);
+                stand.transform.localScale    = new Vector3(3.5f, 1.0f, 1.8f);
+                stand.GetComponent<MeshRenderer>().sharedMaterial = gunMat;
+                UnityEngine.Object.DestroyImmediate(stand.GetComponent<BoxCollider>());
+
+                var newPivot = new GameObject("CannonPivot");
+                newPivot.transform.SetParent(gunBase.transform, false);
+                newPivot.transform.localPosition = Vector3.zero;
+
+                var muzzle = new GameObject("Muzzle");
+                muzzle.transform.SetParent(newPivot.transform, false);
+                muzzle.transform.localPosition = Vector3.zero;
+
+                var barrel     = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                barrel.name    = "Barrel";
+                barrel.transform.SetParent(newPivot.transform, false);
+                barrel.transform.localPosition = new Vector3(2.5f, 0f, 0f);
+                barrel.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+                barrel.transform.localScale    = new Vector3(1.2f, 2.5f, 1.2f);
+                barrel.GetComponent<MeshRenderer>().sharedMaterial = gunMat;
+                UnityEngine.Object.DestroyImmediate(barrel.GetComponent<CapsuleCollider>());
+            }
+        }
 
         // ── BULLET ────────────────────────────────────────────────────────────
         var bulletGO = GetOrCreate("BulletGO", grpBullet.transform);
@@ -440,14 +522,23 @@ public static class BallisticSceneSetup
 
     private static void CreateMaterials()
     {
-        GetOrCreateMaterial("Mat_Ground",     "Universal Render Pipeline/Lit",
-            new Color(0.18f, 0.24f, 0.18f), $"{k_Materials}/Mat_Ground.mat");
+        // Suelo oscuro militar metálico
+        var groundMat = GetOrCreateMaterial("Mat_Ground", "Universal Render Pipeline/Lit",
+            new Color(0.05f, 0.08f, 0.06f), $"{k_Materials}/Mat_Ground.mat");
+        if (groundMat.HasProperty("_Smoothness")) groundMat.SetFloat("_Smoothness", 0.4f);
 
-        GetOrCreateMaterial("Mat_TargetBox",  "Universal Render Pipeline/Lit",
-            new Color(0.36f, 0.23f, 0.12f), $"{k_Materials}/Mat_TargetBox.mat");
+        // Cajas de blanco tácticas (madera/metal reforzado)
+        GetOrCreateMaterial("Mat_TargetBox", "Universal Render Pipeline/Lit",
+            new Color(0.28f, 0.22f, 0.16f), $"{k_Materials}/Mat_TargetBox.mat");
 
-        GetOrCreateMaterial("Mat_Trajectory", "Universal Render Pipeline/Unlit",
-            new Color(0.22f, 0.83f, 0.33f), $"{k_Materials}/Mat_Trajectory.mat");
+        // Trayectoria Neón fluorescente brillante
+        var trajMat = GetOrCreateMaterial("Mat_Trajectory", "Universal Render Pipeline/Unlit",
+            new Color(0.0f, 1.0f, 0.35f), $"{k_Materials}/Mat_Trajectory.mat");
+        if (trajMat.HasProperty("_EmissionColor"))
+        {
+            trajMat.EnableKeyword("_EMISSION");
+            trajMat.SetColor("_EmissionColor", new Color(0.0f, 2.0f, 0.7f) * 1.5f);
+        }
     }
 
     private static Material GetOrCreateMaterial(

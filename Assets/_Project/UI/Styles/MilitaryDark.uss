@@ -1,321 +1,429 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   SIMULADOR BALÍSTICO — Estilo Militar Oscuro
-   Paleta: fondo #0d1117 | panel #161b22 | acento #39d353 (verde militar)
-           texto principal #e6edf3 | texto secundario #7d8590
-           borde #30363d | warning #d29922 | peligro #f85149
+   SIMULADOR BALÍSTICO — Estilo Terminal HUD Militar "Nightglass"
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Variables (custom properties via USS) ───────────────────────────────── */
 :root {
-    --col-bg:         #0d1117;
-    --col-panel:      #161b22;
-    --col-panel-alt:  #1c2128;
-    --col-border:     #30363d;
-    --col-accent:     #39d353;
-    --col-accent-dim: #1a6628;
-    --col-text:       #e6edf3;
-    --col-text-dim:   #7d8590;
-    --col-danger:     #f85149;
-    --col-warn:       #d29922;
-    --col-fire:       #ff6b35;
-    --radius-sm:      3px;
-    --radius-md:      6px;
+    --col-bg:         rgba(0, 15, 5, 0.7);
+    --col-panel:      rgba(0, 25, 10, 0.85);
+    --col-border:     #008f11;
+    --col-border-dim: #004008;
+    --col-accent:     #00ff41;
+    --col-accent-dim: #00aa2b;
+    --col-text:       #00ff41; 
+    --col-text-dim:   #00aa2b;
+    --col-fire:       #ff2a00;
+    --col-warn:       #ffc107;
+    
+    --border-w:       1px;
 }
 
-/* ── Root ────────────────────────────────────────────────────────────────── */
-.root {
-    flex-direction: row;
+/* ── HUD Root ────────────────────────────────────────────────────────────── */
+.hud-root {
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0);
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    /* Simulate terminal font by forcing uppercase styles where possible */
 }
 
-/* ── Panel lateral ───────────────────────────────────────────────────────── */
-.side-panel {
-    width: 340px;
-    min-width: 280px;
-    max-width: 400px;
-    height: 100%;
+/* ── HUD Panels General ──────────────────────────────────────────────────── */
+.hud-panel {
+    position: absolute;
     background-color: var(--col-panel);
-    border-right-color: var(--col-accent-dim);
-    border-right-width: 1px;
-    padding: 0 0 16px 0;
+    border-color: var(--col-border);
+    border-width: var(--border-w);
+}
+
+.panel-heading {
+    background-color: rgba(0, 143, 17, 0.15);
+    border-bottom-color: var(--col-border);
+    border-bottom-width: var(--border-w);
+    color: var(--col-text);
+    font-size: 14px;
+    -unity-font-style: bold;
+    padding: 6px 12px;
+    letter-spacing: 2px;
+}
+
+.panel-content {
+    padding: 8px 12px;
 }
 
 /* ── Header ──────────────────────────────────────────────────────────────── */
-.panel-header {
-    background-color: #0a0f14;
-    border-bottom-color: var(--col-accent);
-    border-bottom-width: 1px;
-    padding: 12px 16px 10px 16px;
-    margin-bottom: 8px;
-}
-
-.panel-title {
-    font-size: 13px;
-    color: var(--col-accent);
-    -unity-font-style: bold;
-    letter-spacing: 2px;
-    margin-bottom: 4px;
-}
-
-.status-label {
-    font-size: 11px;
-    color: var(--col-text-dim);
-    -unity-font-style: italic;
-}
-
-/* ── Foldouts (secciones colapsables) ────────────────────────────────────── */
-.section-foldout {
-    margin: 4px 8px;
-    border-width: 1px;
+.hud-header {
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    translate: -50% 0;
+    background-color: var(--col-panel);
     border-color: var(--col-border);
-    border-radius: var(--radius-md);
-    background-color: var(--col-panel-alt);
-    padding: 0;
+    border-width: var(--border-w);
+    padding: 8px 30px;
+    align-items: center;
+    flex-direction: row;
 }
 
-.section-foldout > Toggle {
-    background-color: #1c2128;
-    border-bottom-color: var(--col-border);
-    border-bottom-width: 1px;
-    padding: 8px 12px;
-    color: var(--col-accent);
-    font-size: 11px;
+.hud-title {
+    font-size: 16px;
+    color: var(--col-text);
     -unity-font-style: bold;
-    letter-spacing: 1px;
+    letter-spacing: 4px;
+    margin-right: 20px;
 }
 
-.section-foldout > Toggle:hover {
-    background-color: var(--col-accent-dim);
+.hud-status {
+    font-size: 12px;
+    color: var(--col-text-dim);
+    border-left-width: 1px;
+    border-left-color: var(--col-border);
+    padding-left: 20px;
 }
 
-/* ── Filas de parámetros ─────────────────────────────────────────────────── */
+/* ── Left Panel (Ammo) ───────────────────────────────────────────────────── */
+.hud-left {
+    top: 70px;
+    left: 20px;
+    width: 360px;
+    bottom: 120px;
+}
+
+/* ── Right Panel (Targets) ───────────────────────────────────────────────── */
+.hud-right {
+    top: 70px;
+    right: 20px;
+    width: 360px;
+    bottom: 120px;
+}
+
+/* ── Bottom Panel (Actions & Batch) ──────────────────────────────────────── */
+.hud-bottom {
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    height: 80px;
+}
+
+.hud-bottom-inner {
+    flex-direction: row;
+    height: 100%;
+    justify-content: space-between;
+    align-items: stretch;
+}
+
+.actions-group {
+    flex-direction: row;
+    align-items: center;
+    padding: 0 20px;
+    border-right-color: var(--col-border);
+    border-right-width: var(--border-w);
+    flex-grow: 1;
+}
+
+.batch-group {
+    flex-direction: row;
+    align-items: center;
+    padding: 0 20px;
+    justify-content: flex-end;
+}
+
+/* ── Field Rows (Inside panels) ──────────────────────────────────────────── */
 .field-row {
     flex-direction: row;
     align-items: center;
-    padding: 5px 12px;
-    border-bottom-color: var(--col-border);
-    border-bottom-width: 0px;
+    padding: 6px 4px;
+    margin-bottom: 2px;
 }
 
 .field-row:hover {
-    background-color: rgba(57, 211, 83, 0.04);
+    background-color: rgba(0, 255, 65, 0.05);
 }
 
 .field-label {
     width: 115px;
-    min-width: 115px;
     font-size: 11px;
     color: var(--col-text-dim);
     -unity-text-align: middle-left;
+    letter-spacing: 1px;
 }
 
 /* ── Sliders ─────────────────────────────────────────────────────────────── */
 .param-slider {
     flex-grow: 1;
     margin: 0 6px;
+    height: 24px;
 }
 
-.param-slider > .unity-base-slider__tracker {
-    background-color: var(--col-border);
-    border-radius: 2px;
+.param-slider .unity-base-slider__drag-container {
+    height: 100%;
+}
+
+.param-slider .unity-base-slider__tracker {
+    background-color: var(--col-border-dim);
+    border-width: 0;
     height: 3px;
+    border-radius: 0;
+    position: absolute;
+    top: 10px;
+    left: 0;
+    right: 0;
 }
 
-.param-slider > .unity-base-slider__dragger {
-    background-color: var(--col-accent);
-    border-color: var(--col-accent);
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    top: -5px;
-}
-
-.param-slider > .unity-base-slider__dragger:hover {
-    background-color: white;
-    border-color: var(--col-accent);
-    scale: 1.2 1.2;
-}
-
-/* ── Campos numéricos ────────────────────────────────────────────────────── */
-.param-field {
-    width: 62px;
-    min-width: 62px;
-}
-
-.param-field > .unity-text-field__input,
-.param-field > TextInput {
-    background-color: #0d1117;
-    border-color: var(--col-border);
+.param-slider .unity-base-slider__dragger {
+    background-color: var(--col-text);
     border-width: 1px;
-    border-radius: var(--radius-sm);
-    color: var(--col-accent);
-    font-size: 11px;
-    padding: 2px 4px;
-    -unity-font-style: bold;
+    border-color: #00ff41;
+    width: 10px;
+    height: 14px;
+    border-radius: 0;
+    position: absolute;
+    top: 4px;
+    margin-top: 0;
 }
 
-.param-field > .unity-text-field__input:focus,
-.param-field > TextInput:focus {
-    border-color: var(--col-accent);
-    background-color: #0a0f14;
+.param-slider .unity-base-slider__dragger:hover {
+    background-color: #ffffff;
 }
 
-/* ── Dropdown ────────────────────────────────────────────────────────────── */
+/* ── Text Fields & Numerical Inputs (FloatField, IntegerField, TextField) ─ */
+.param-field {
+    width: 55px;
+    margin: 0;
+}
+
+/* Selectores específicos de UI Toolkit para FloatField e IntegerField */
+.param-field .unity-base-text-field__input,
+.param-field .unity-float-field__input,
+.param-field .unity-integer-field__input,
+.param-field .unity-text-field__input,
+.batch-field .unity-base-text-field__input,
+.batch-field .unity-float-field__input,
+.batch-field .unity-integer-field__input,
+.batch-field .unity-text-field__input,
+.unity-base-text-field__input,
+.unity-float-field__input,
+.unity-integer-field__input,
+.unity-text-field__input {
+    background-color: rgba(4, 20, 8, 0.95) !important;
+    border-color: var(--col-border) !important;
+    border-width: 1px !important;
+    border-radius: 0 !important;
+    color: var(--col-text) !important;
+    font-size: 12px !important;
+    padding: 2px 4px !important;
+    -unity-text-align: middle-center !important;
+    -unity-font-style: bold !important;
+}
+
+.param-field .unity-base-text-field__input:focus,
+.param-field .unity-float-field__input:focus,
+.param-field .unity-integer-field__input:focus,
+.batch-field .unity-base-text-field__input:focus,
+.unity-base-text-field__input:focus {
+    background-color: rgba(0, 255, 65, 0.25) !important;
+    border-color: var(--col-accent) !important;
+}
+
+/* ── Dropdown Specific (Control principal y Popup flotante) ──────────────── */
 .dropdown {
     flex-grow: 1;
-    background-color: #0d1117;
-    border-color: var(--col-border);
-    border-width: 1px;
-    border-radius: var(--radius-sm);
+    margin: 0;
+    height: 24px;
+}
+
+.dropdown .unity-base-popup-field__input {
+    background-color: rgba(4, 20, 8, 0.95) !important;
+    border-color: var(--col-border) !important;
+    border-width: 1px !important;
+    border-radius: 0 !important;
+    padding: 2px 6px !important;
+}
+
+.dropdown .unity-base-popup-field__text {
     color: var(--col-text);
-    font-size: 11px;
-}
-
-.dropdown:hover {
-    border-color: var(--col-accent);
-}
-
-/* ── Labels de resultado ─────────────────────────────────────────────────── */
-.result-label {
     font-size: 12px;
-    color: var(--col-text);
-    padding: 4px 12px;
     -unity-font-style: bold;
 }
 
-/* ── Hints ───────────────────────────────────────────────────────────────── */
-.hint-label {
-    font-size: 10px;
-    color: var(--col-text-dim);
-    padding: 4px 12px 6px 12px;
-    -unity-font-style: italic;
+.dropdown .unity-base-popup-field__arrow {
+    -unity-background-image-tint-color: var(--col-text);
 }
 
-.subsection-label {
-    font-size: 10px;
+/* Estilo del Menú Desplegable (Popup Window) */
+.unity-enum-field__menu,
+.unity-base-dropdown__container,
+.unity-type-popupmenu {
+    background-color: rgba(2, 14, 6, 0.98);
+    border-color: var(--col-border);
+    border-width: 1px;
+    border-radius: 0;
+}
+
+.unity-enum-field__item,
+.unity-base-dropdown__item {
     color: var(--col-text-dim);
-    padding: 6px 12px 2px 12px;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-bottom-color: rgba(0, 143, 17, 0.2);
+    border-bottom-width: 1px;
+}
+
+.unity-enum-field__item:hover,
+.unity-base-dropdown__item:hover,
+.unity-base-dropdown__item--selected {
+    background-color: rgba(0, 255, 65, 0.2);
+    color: var(--col-text);
+    -unity-font-style: bold;
+}
+
+/* ── Results ─────────────────────────────────────────────────────────────── */
+.results-container {
+    padding: 15px;
+    background-color: rgba(0, 143, 17, 0.05);
+    border-top-color: var(--col-border);
+    border-top-width: 1px;
+    border-bottom-color: var(--col-border);
+    border-bottom-width: 1px;
+    margin: 5px 10px;
+}
+
+.result-label {
+    font-size: 14px;
+    color: var(--col-text);
+    -unity-font-style: bold;
+    margin-bottom: 5px;
     letter-spacing: 1px;
 }
 
-/* ── Triple row (batch) ──────────────────────────────────────────────────── */
-.triple-row {
+/* ── Batch Testing ───────────────────────────────────────────────────────── */
+.batch-title {
+    font-size: 13px;
+    color: var(--col-warn);
+    -unity-font-style: bold;
+    margin-right: 15px;
+    letter-spacing: 2px;
+}
+
+.batch-fields-container {
     flex-direction: row;
-    padding: 4px 12px;
-    justify-content: space-between;
+    margin-right: 15px;
+}
+
+.batch-field-group {
+    flex-direction: row;
+    align-items: center;
+    margin-right: 10px;
+    border-color: var(--col-border-dim);
+    border-width: 1px;
+    padding: 4px 8px;
+    background-color: rgba(0, 20, 0, 0.5);
+}
+
+.batch-field-group > Label {
+    font-size: 10px;
+    color: var(--col-text-dim);
+    margin-right: 8px;
+    -unity-font-style: bold;
+}
+
+.batch-sub-label {
+    font-size: 9px;
+    color: var(--col-text-dim);
+    margin-left: 4px;
+    margin-right: 2px;
 }
 
 .batch-field {
-    flex-grow: 1;
-    margin: 0 4px;
-}
-
-.batch-field Label {
-    font-size: 10px;
-    color: var(--col-text-dim);
+    width: 40px;
+    margin: 0;
 }
 
 .batch-field > .unity-text-field__input {
-    background-color: #0d1117;
-    border-color: var(--col-border);
-    border-width: 1px;
-    border-radius: var(--radius-sm);
     color: var(--col-warn);
-    font-size: 11px;
+    border-color: var(--col-border-dim);
+    padding: 2px;
+    font-size: 10px;
 }
 
-/* ── Barra de acciones ───────────────────────────────────────────────────── */
-.action-bar {
-    margin: 12px 8px 4px 8px;
-    flex-direction: column;
+.batch-field > Label {
+    display: none;
 }
 
-/* Botón principal — Disparar */
+.batch-status-label {
+    color: var(--col-text-dim);
+    font-size: 10px;
+    margin-right: 15px;
+    -unity-text-align: middle-right;
+    width: 80px;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
 .btn-fire {
-    height: 42px;
-    background-color: var(--col-fire);
-    border-color: #c94e22;
+    background-color: transparent;
+    border-color: var(--col-fire);
     border-width: 1px;
-    border-radius: var(--radius-md);
-    color: white;
-    font-size: 13px;
+    color: var(--col-fire);
+    font-size: 16px;
     -unity-font-style: bold;
-    letter-spacing: 2px;
-    margin-bottom: 6px;
-    transition-property: background-color, scale;
-    transition-duration: 0.1s;
+    padding: 10px 25px;
+    margin-right: 15px;
+    letter-spacing: 3px;
+    border-radius: 0;
 }
 
 .btn-fire:hover {
-    background-color: #ff8c5a;
-    scale: 1.01 1.01;
+    background-color: rgba(255, 42, 0, 0.15);
+    border-color: #ff6b4a;
+    color: #ff6b4a;
 }
 
 .btn-fire:active {
-    background-color: #c94e22;
-    scale: 0.99 0.99;
+    background-color: var(--col-fire);
+    color: black;
 }
 
 .btn-fire:disabled {
-    background-color: #4a2515;
-    color: rgba(255,255,255,0.3);
+    border-color: #551000;
+    color: #551000;
 }
 
-/* Botones secundarios */
 .btn-secondary {
-    height: 32px;
-    background-color: var(--col-panel-alt);
+    background-color: transparent;
     border-color: var(--col-border);
     border-width: 1px;
-    border-radius: var(--radius-sm);
     color: var(--col-text);
-    font-size: 11px;
-    margin-bottom: 4px;
+    font-size: 12px;
+    padding: 8px 15px;
+    margin-right: 10px;
+    letter-spacing: 1px;
+    border-radius: 0;
 }
 
 .btn-secondary:hover {
-    background-color: var(--col-accent-dim);
-    border-color: var(--col-accent);
-    color: var(--col-accent);
+    background-color: rgba(0, 255, 65, 0.15);
 }
 
-.btn-secondary:disabled {
-    color: var(--col-text-dim);
-    background-color: var(--col-panel);
-    border-color: #21262d;
+.btn-secondary:active {
+    background-color: var(--col-text);
+    color: black;
 }
 
-/* Botón batch */
 .btn-batch {
-    height: 32px;
-    background-color: #1a2330;
+    background-color: transparent;
     border-color: var(--col-warn);
     border-width: 1px;
-    border-radius: var(--radius-sm);
     color: var(--col-warn);
-    font-size: 11px;
+    font-size: 12px;
+    padding: 8px 15px;
     -unity-font-style: bold;
-    margin: 6px 12px 4px 12px;
+    letter-spacing: 1px;
+    border-radius: 0;
 }
 
 .btn-batch:hover {
-    background-color: #2a3040;
+    background-color: rgba(255, 193, 7, 0.15);
 }
 
-/* Botón exportar CSV */
-.btn-export {
-    height: 32px;
-    background-color: var(--col-panel-alt);
-    border-color: var(--col-accent-dim);
-    border-width: 1px;
-    border-radius: var(--radius-sm);
-    color: var(--col-accent);
-    font-size: 11px;
-    margin-top: 2px;
-}
-
-.btn-export:hover {
-    background-color: var(--col-accent-dim);
+.btn-batch:active {
+    background-color: var(--col-warn);
+    color: black;
 }

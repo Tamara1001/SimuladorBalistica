@@ -284,10 +284,10 @@ namespace BallisticSimulator.UI
             if (_statusLabel != null)
                 _statusLabel.text = state switch
                 {
-                    GameStateManager.SimState.Setup        => "Listo para disparar",
-                    GameStateManager.SimState.Firing       => "En vuelo...",
+                    GameStateManager.SimState.Setup        => "EN ESPERA",
+                    GameStateManager.SimState.Firing       => "EN VUELO...",
                     GameStateManager.SimState.Paused       => "PAUSADO",
-                    GameStateManager.SimState.BatchRunning => "Batch en progreso...",
+                    GameStateManager.SimState.BatchRunning => "LOTE EN PROGRESO...",
                     _                                      => ""
                 };
         }

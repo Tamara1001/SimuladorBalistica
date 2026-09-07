@@ -6,7 +6,7 @@ namespace BallisticSimulator.Camera
 {
     /// <summary>
     /// Controla la cámara libre (FPS) durante el vuelo o pausa de la simulación.
-    /// Soporta tanto el Nuevo Input System como el Legacy Input System por fallback.
+    /// Soporta detección combinada robusta (Nuevo Input System + Legacy Input System).
     /// Usa unscaledDeltaTime para funcionar perfectamente en Pausa y Slow-Motion.
     ///
     /// Controles:
@@ -55,24 +55,10 @@ namespace BallisticSimulator.Camera
 
             float dt = Time.unscaledDeltaTime;
 
-            // ── Leer Mouse (Híbrido: InputSystem + Legacy Fallback) ──
-            bool rightPressed = false;
-            Vector2 mouseDelta = Vector2.zero;
-            float mouseScroll = 0f;
-
-            var mouse = Mouse.current;
-            if (mouse != null)
-            {
-                rightPressed = mouse.rightButton.isPressed;
-                mouseDelta   = mouse.delta.ReadValue();
-                mouseScroll  = mouse.scroll.ReadValue().y;
-            }
-            else
-            {
-                rightPressed = UnityEngine.Input.GetMouseButton(1);
-                mouseDelta   = new Vector2(UnityEngine.Input.GetAxis("Mouse X") * 15f, UnityEngine.Input.GetAxis("Mouse Y") * 15f);
-                mouseScroll  = UnityEngine.Input.GetAxis("Mouse ScrollWheel") * 120f;
-            }
+            // ── Leer Clic Derecho e Inputs de Mouse (Combinación Híbrida Robusta) ──
+            bool rightPressed = ReadRightClick();
+            Vector2 mouseDelta = ReadMouseDelta();
+            float mouseScroll = ReadMouseScroll();
 
             if (rightPressed && !_isRightClickPressed)
             {
@@ -99,37 +85,23 @@ namespace BallisticSimulator.Camera
                 _targetPosition += transform.forward * Mathf.Sign(mouseScroll) * 3f;
             }
 
-            // ── Movimiento WASD/QE (Híbrido) ──
-            Vector3 move = Vector3.zero;
-            bool fast = false;
+            // ── Movimiento WASD/QE (Detección Híbrida Combinada) ──
+            Vector3 moveDir = Vector3.zero;
 
-            var kb = Keyboard.current;
-            if (kb != null)
-            {
-                fast = kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed;
-                if (kb.wKey.isPressed) move += transform.forward;
-                if (kb.sKey.isPressed) move -= transform.forward;
-                if (kb.aKey.isPressed) move -= transform.right;
-                if (kb.dKey.isPressed) move += transform.right;
-                if (kb.eKey.isPressed) move += Vector3.up;
-                if (kb.qKey.isPressed) move -= Vector3.up;
-            }
-            else
-            {
-                fast = UnityEngine.Input.GetKey(KeyCode.LeftShift) || UnityEngine.Input.GetKey(KeyCode.RightShift);
-                if (UnityEngine.Input.GetKey(KeyCode.W)) move += transform.forward;
-                if (UnityEngine.Input.GetKey(KeyCode.S)) move -= transform.forward;
-                if (UnityEngine.Input.GetKey(KeyCode.A)) move -= transform.right;
-                if (UnityEngine.Input.GetKey(KeyCode.D)) move += transform.right;
-                if (UnityEngine.Input.GetKey(KeyCode.E)) move += Vector3.up;
-                if (UnityEngine.Input.GetKey(KeyCode.Q)) move -= Vector3.up;
-            }
+            if (IsKeyPressed(Key.W, KeyCode.W)) moveDir += transform.forward;
+            if (IsKeyPressed(Key.S, KeyCode.S)) moveDir -= transform.forward;
+            if (IsKeyPressed(Key.A, KeyCode.A)) moveDir -= transform.right;
+            if (IsKeyPressed(Key.D, KeyCode.D)) moveDir += transform.right;
+            if (IsKeyPressed(Key.E, KeyCode.E)) moveDir += Vector3.up;
+            if (IsKeyPressed(Key.Q, KeyCode.Q)) moveDir -= Vector3.up;
+
+            bool fast = IsKeyPressed(Key.LeftShift, KeyCode.LeftShift) || IsKeyPressed(Key.RightShift, KeyCode.RightShift);
 
             float speed = _moveSpeed * dt;
             if (fast) speed *= _fastMultiplier;
 
-            if (move.sqrMagnitude > 0f)
-                _targetPosition += move.normalized * speed;
+            if (moveDir.sqrMagnitude > 0f)
+                _targetPosition += moveDir.normalized * speed;
 
             ApplySmoothing();
         }
@@ -167,6 +139,60 @@ namespace BallisticSimulator.Camera
             _yaw            = transform.eulerAngles.y;
             _pitch          = transform.eulerAngles.x;
             _targetRotation = transform.rotation;
+        }
+
+        // ── Helpers Híbridos de Lectura de Input ──────────────────────────────
+
+        private bool ReadRightClick()
+        {
+            var mouse = Mouse.current;
+            bool newSys = mouse != null && mouse.rightButton.isPressed;
+            bool oldSys = false;
+            try { oldSys = UnityEngine.Input.GetMouseButton(1); } catch { }
+            return newSys || oldSys;
+        }
+
+        private Vector2 ReadMouseDelta()
+        {
+            Vector2 delta = Vector2.zero;
+            var mouse = Mouse.current;
+            if (mouse != null)
+            {
+                delta = mouse.delta.ReadValue();
+            }
+
+            if (delta.sqrMagnitude < 0.001f)
+            {
+                try
+                {
+                    delta = new Vector2(UnityEngine.Input.GetAxis("Mouse X") * 15f, UnityEngine.Input.GetAxis("Mouse Y") * 15f);
+                }
+                catch { }
+            }
+
+            return delta;
+        }
+
+        private float ReadMouseScroll()
+        {
+            var mouse = Mouse.current;
+            if (mouse != null)
+            {
+                float val = mouse.scroll.ReadValue().y;
+                if (Mathf.Abs(val) > 0.01f) return val;
+            }
+
+            try { return UnityEngine.Input.GetAxis("Mouse ScrollWheel") * 120f; }
+            catch { return 0f; }
+        }
+
+        private bool IsKeyPressed(Key newKey, KeyCode legacyKey)
+        {
+            var kb = Keyboard.current;
+            bool newSys = kb != null && kb[newKey].isPressed;
+            bool oldSys = false;
+            try { oldSys = UnityEngine.Input.GetKey(legacyKey); } catch { }
+            return newSys || oldSys;
         }
     }
 }
