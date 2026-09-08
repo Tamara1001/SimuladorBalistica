@@ -1,9 +1,10 @@
 using UnityEngine;
 
-namespace BallisticSimulator.UI
+namespace BallisticSimulator.Data
 {
     /// <summary>
     /// ScriptableObject que representa un preset de munición real.
+    /// Es un Model de configuración: datos puros sin referencias a UI ni escena.
     /// Crear instancias via Assets > Create > BallisticSimulator > Bullet Preset.
     /// </summary>
     [CreateAssetMenu(

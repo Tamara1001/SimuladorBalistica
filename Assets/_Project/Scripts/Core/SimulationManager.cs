@@ -9,15 +9,20 @@ using UnityEngine;
 namespace BallisticSimulator.Core
 {
     /// <summary>
-    /// Orquestador central del simulador.
-    /// Coordina: disparo, reset, recolección de datos, y batch testing.
+    /// Controller central del simulador (MVC).
+    /// Coordina: disparo, reset, recolección de datos y batch testing.
+    ///
+    /// MVC: este es el CONTROLLER.
+    ///   - Posee el MODEL (BallisticParameters _params).
+    ///   - Recibe acciones de la VIEW (SidePanelUI) a través de métodos públicos.
+    ///   - Nunca escribe en la UI directamente; notifica cambios via eventos.
     /// </summary>
     public class SimulationManager : MonoBehaviour
     {
         // ── Singleton ────────────────────────────────────────────────────────────
         public static SimulationManager Instance { get; private set; }
 
-        // ── Referencias (asignar en Inspector o via Editor Tool) ──────────────────
+        // ── Referencias de escena (asignar en Inspector o via Editor Tool) ────────
         [Header("Componentes de escena")]
         [SerializeField] private BulletController  _bulletController;
         [SerializeField] private TrajectoryPreview _trajectoryPreview;
@@ -28,16 +33,15 @@ namespace BallisticSimulator.Core
         [Header("Cámara PiP")]
         [SerializeField] private BulletPiPCamera _pipCamera;
 
-        // ── Parámetros actuales (sincronizados desde SidePanelUI) ─────────────────
-        [HideInInspector] public float  AngleDegrees    = 10f;
-        [HideInInspector] public float  InitialVelocity = 45f;
-        [HideInInspector] public float  BulletMassG     = 8f;
-        [HideInInspector] public float  BulletRadiusMm  = 4.5f;
-        [HideInInspector] public float  Gravity         = 9.81f;
-        [HideInInspector] public float  TimeScale       = 1.0f;
-        [HideInInspector] public string PresetName      = "9mm Parabellum";
+        // ── MODEL: parámetros activos de la simulación ────────────────────────────
+        // Accesible desde el Inspector para depuración; solo el Controller lo muta.
+        [Header("Parámetros actuales (Model)")]
+        [SerializeField] private BallisticParameters _params = new BallisticParameters();
 
-        // ── Sesión activa ──────────────────────────────────────────────────────────
+        // Propiedad de solo lectura para que la View pueda leer el estado si necesita
+        public BallisticParameters Params => _params;
+
+        // ── Sesión activa ─────────────────────────────────────────────────────────
         private SessionData _session;
         private ShotData    _currentShot;
         private int         _boxesHitThisShot;
@@ -71,35 +75,27 @@ namespace BallisticSimulator.Core
         private void Update()
         {
             if (GameStateManager.Instance != null && GameStateManager.Instance.IsPaused)
-            {
                 Time.timeScale = 0f;
-            }
             else
-            {
-                Time.timeScale = Mathf.Max(0.05f, TimeScale);
-            }
+                Time.timeScale = Mathf.Max(0.05f, _params.TimeScale);
         }
 
-        // ── API pública ───────────────────────────────────────────────────────────
+        // ── API pública — acciones (Controller recibe intenciones de la View) ─────
 
         /// <summary>Recalcula y muestra el preview de trayectoria. Solo actúa en estado Setup.</summary>
         public void RefreshPreview()
         {
-            // Rotar el modelo 3D del cañón según el ángulo actual
+            // Rotar el modelo 3D del cañón según el ángulo actual del Model
             if (_gunBaseTransform != null)
             {
-                // Si el objeto asignado tiene un hijo 'CannonPivot' o es el pivot en sí, rotar adecuadamente
-                Transform pivotToRotate = _gunBaseTransform.name == "CannonPivot" ? 
-                    _gunBaseTransform : _gunBaseTransform.Find("CannonPivot");
+                Transform pivotToRotate = _gunBaseTransform.name == "CannonPivot"
+                    ? _gunBaseTransform
+                    : _gunBaseTransform.Find("CannonPivot");
 
                 if (pivotToRotate != null)
-                {
-                    pivotToRotate.localRotation = Quaternion.Euler(0f, 0f, AngleDegrees);
-                }
+                    pivotToRotate.localRotation = Quaternion.Euler(0f, 0f, _params.AngleDegrees);
                 else
-                {
-                    _gunBaseTransform.localRotation = Quaternion.Euler(0f, 0f, AngleDegrees);
-                }
+                    _gunBaseTransform.localRotation = Quaternion.Euler(0f, 0f, _params.AngleDegrees);
             }
 
             if (_trajectoryPreview == null || _muzzleTransform == null) return;
@@ -107,9 +103,9 @@ namespace BallisticSimulator.Core
 
             _trajectoryPreview.UpdatePreview(
                 _muzzleTransform.position,
-                AngleDegrees,
-                InitialVelocity,
-                Gravity);
+                _params.AngleDegrees,
+                _params.InitialVelocity,
+                _params.Gravity);
         }
 
         /// <summary>Dispara la bala. Solo válido en estado Setup.</summary>
@@ -125,9 +121,7 @@ namespace BallisticSimulator.Core
             if (_bulletController != null)
                 _bulletController.gameObject.SetActive(false);
 
-            // Desactivar PiP al resetear
             _pipCamera?.Deactivate();
-
             _targetSpawner?.ResetTargets();
             _trajectoryPreview?.Show();
             RefreshPreview();
@@ -170,6 +164,55 @@ namespace BallisticSimulator.Core
             return path;
         }
 
+        // ── Setters del Model (la View llama estos, nunca escribe _params directo) ─
+
+        /// <summary>Establece el ángulo de disparo y refresca el preview.</summary>
+        public void SetAngle(float degrees)
+        {
+            _params.AngleDegrees = degrees;
+            RefreshPreview();
+        }
+
+        /// <summary>Establece la velocidad inicial y refresca el preview.</summary>
+        public void SetVelocity(float metersPerSecond)
+        {
+            _params.InitialVelocity = metersPerSecond;
+            RefreshPreview();
+        }
+
+        /// <summary>Establece la masa de la bala en gramos.</summary>
+        public void SetMass(float grams) => _params.BulletMassG = grams;
+
+        /// <summary>Establece el radio de la bala en milímetros.</summary>
+        public void SetRadius(float mm) => _params.BulletRadiusMm = mm;
+
+        /// <summary>Establece la gravedad y refresca el preview.</summary>
+        public void SetGravity(float gravity)
+        {
+            _params.Gravity = gravity;
+            RefreshPreview();
+        }
+
+        /// <summary>Establece el multiplicador de velocidad de simulación.</summary>
+        public void SetTimeScale(float scale) => _params.TimeScale = scale;
+
+        /// <summary>
+        /// Aplica un preset de munición completo al Model.
+        /// Actualiza velocidad, masa, radio y nombre de preset de una sola vez.
+        /// </summary>
+        public void ApplyPreset(BulletPreset preset)
+        {
+            if (preset == null) return;
+            _params.InitialVelocity = preset.MuzzleVelocity;
+            _params.BulletMassG     = preset.MassGrams;
+            _params.BulletRadiusMm  = preset.RadiusMm;
+            _params.PresetName      = preset.PresetName;
+            RefreshPreview();
+        }
+
+        /// <summary>Marca el preset como personalizado (cuando el usuario modifica manualmente).</summary>
+        public void SetPresetName(string name) => _params.PresetName = name;
+
         // ── Batch Testing ─────────────────────────────────────────────────────────
 
         /// <summary>
@@ -184,10 +227,9 @@ namespace BallisticSimulator.Core
             _batchMode = true;
             GameStateManager.Instance.SetState(GameStateManager.SimState.BatchRunning);
 
-            // Calcular total de disparos
             int total = 0;
             for (float a = angleMin; a <= angleMax + 0.001f; a += Mathf.Max(0.1f, angleStep))
-                for (float v = velMin;   v <= velMax + 0.001f;   v += Mathf.Max(1f,   velStep))
+                for (float v = velMin; v <= velMax + 0.001f; v += Mathf.Max(1f, velStep))
                     total++;
 
             int done = 0;
@@ -196,20 +238,21 @@ namespace BallisticSimulator.Core
             {
                 for (float vel = velMin; vel <= velMax + 0.001f; vel += Mathf.Max(1f, velStep))
                 {
-                    AngleDegrees    = angle;
-                    InitialVelocity = vel;
+                    // En batch se mutan _params directamente (no via setters,
+                    // para evitar el RefreshPreview innecesario en cada iteración)
+                    _params.AngleDegrees    = angle;
+                    _params.InitialVelocity = vel;
 
                     _batchShotComplete = false;
                     _targetSpawner?.ResetTargets();
                     LaunchInternal();
 
-                    // Esperar a que el disparo complete
                     yield return new WaitUntil(() => _batchShotComplete);
 
                     done++;
                     onProgress?.Invoke(done, total);
 
-                    yield return null; // un frame de respiro entre disparos
+                    yield return null;
                 }
             }
 
@@ -229,13 +272,11 @@ namespace BallisticSimulator.Core
 
             if (_batchMode)
             {
-                // Batch: el loop de RunBatch se encarga de continuar
                 if (_bulletController != null)
                     _bulletController.gameObject.SetActive(false);
             }
             else
             {
-                // Manual: datos guardados, listo para disparar de nuevo sin resetear targets
                 _pipCamera?.Deactivate();
                 ReadyForNextShot();
             }
@@ -243,16 +284,14 @@ namespace BallisticSimulator.Core
 
         private void HandleHit(Vector3 pos, float time, GameObject target)
         {
-            // Aplicar física de impacto a la caja
             var box = target.GetComponent<TargetBox>();
             if (box != null)
             {
-                float bulletMassKg  = BulletMassG / 1000f;
-                float speed         = BulletPhysics.Speed(AngleDegrees, InitialVelocity, Gravity, time);
+                float bulletMassKg  = _params.BulletMassG / 1000f;
+                float speed         = BulletPhysics.Speed(_params.AngleDegrees, _params.InitialVelocity, _params.Gravity, time);
                 float kineticEnergy = 0.5f * bulletMassKg * speed * speed;
-                Vector3 dir         = BulletPhysics.Velocity(AngleDegrees, InitialVelocity, Gravity, time).normalized;
+                Vector3 dir         = BulletPhysics.Velocity(_params.AngleDegrees, _params.InitialVelocity, _params.Gravity, time).normalized;
 
-                // Factor de escala para dar un efecto visible sin ser exagerado
                 box.ReceiveHit(pos, dir, kineticEnergy * 0.02f);
             }
 
@@ -261,13 +300,11 @@ namespace BallisticSimulator.Core
 
             if (_batchMode)
             {
-                // Batch: reset mínimo para continuar al siguiente disparo
                 if (_bulletController != null)
                     _bulletController.gameObject.SetActive(false);
             }
             else
             {
-                // Manual: datos guardados, listo para disparar de nuevo sin resetear targets
                 _pipCamera?.Deactivate();
                 ReadyForNextShot();
             }
@@ -277,7 +314,6 @@ namespace BallisticSimulator.Core
 
         /// <summary>
         /// Prepara el simulador para el siguiente disparo sin resetear la escena.
-        /// Llamado automáticamente al terminar un disparo manual (aterrizaje o impacto).
         /// Los targets NO se limpian — el usuario debe pulsar REINICIAR para eso.
         /// </summary>
         private void ReadyForNextShot()
@@ -300,14 +336,13 @@ namespace BallisticSimulator.Core
             _currentShot      = BuildShotData();
 
             _bulletController.Origin          = _muzzleTransform.position;
-            _bulletController.AngleDegrees    = AngleDegrees;
-            _bulletController.InitialVelocity = InitialVelocity;
-            _bulletController.BulletRadiusMm  = BulletRadiusMm;
-            _bulletController.Gravity         = Gravity;
+            _bulletController.AngleDegrees    = _params.AngleDegrees;
+            _bulletController.InitialVelocity = _params.InitialVelocity;
+            _bulletController.BulletRadiusMm  = _params.BulletRadiusMm;
+            _bulletController.Gravity         = _params.Gravity;
             _bulletController.gameObject.SetActive(true);
             _bulletController.Launch(0f);
 
-            // Activar PiP solo en disparos manuales (no en batch)
             if (!_batchMode)
                 _pipCamera?.Activate(_bulletController.transform);
 
@@ -329,7 +364,6 @@ namespace BallisticSimulator.Core
             _currentShot.BoxesHit          = _boxesHitThisShot;
             _currentShot.Timestamp         = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
-            // Distancia horizontal recorrida
             if (_muzzleTransform != null)
                 _currentShot.RangeM = Vector3.Distance(
                     new Vector3(_muzzleTransform.position.x, 0f, _muzzleTransform.position.z),
@@ -349,12 +383,12 @@ namespace BallisticSimulator.Core
             var cfg = _targetSpawner?.Config ?? new TargetGridConfig();
             return new ShotData
             {
-                PresetName      = PresetName,
-                AngleDegrees    = AngleDegrees,
-                InitialVelocity = InitialVelocity,
-                BulletMassGrams = BulletMassG,
-                BulletRadiusMm  = BulletRadiusMm,
-                Gravity         = Gravity,
+                PresetName      = _params.PresetName,
+                AngleDegrees    = _params.AngleDegrees,
+                InitialVelocity = _params.InitialVelocity,
+                BulletMassGrams = _params.BulletMassG,
+                BulletRadiusMm  = _params.BulletRadiusMm,
+                Gravity         = _params.Gravity,
                 BoxCount        = cfg.TotalBoxes,
                 BoxSizeM        = cfg.BoxSize,
                 BoxMassKg       = cfg.BoxMass,

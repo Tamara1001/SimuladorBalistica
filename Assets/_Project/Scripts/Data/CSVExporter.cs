@@ -35,11 +35,14 @@ namespace BallisticSimulator.Data
             string fullPath = Path.Combine(ExportFolder, fileName);
 
             var sb = new StringBuilder();
+            // "sep=;" le indica a Excel qué separador usar, sin importar el locale del sistema
+            sb.AppendLine("sep=;");
             sb.AppendLine(ShotData.CsvHeader);
             foreach (var shot in session.Shots)
                 sb.AppendLine(shot.ToCsvRow());
 
-            File.WriteAllText(fullPath, sb.ToString(), Encoding.UTF8);
+            // UTF-8 con BOM: Excel lo necesita para mostrar tildes y ñ correctamente
+            File.WriteAllText(fullPath, sb.ToString(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
 
             Debug.Log($"[CSVExporter] Sesión exportada → {fullPath}");
             return fullPath;

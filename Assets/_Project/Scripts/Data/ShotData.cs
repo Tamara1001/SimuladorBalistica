@@ -42,16 +42,16 @@ namespace BallisticSimulator.Data
 
         /// <summary>Encabezado CSV</summary>
         public static string CsvHeader =>
-            "ShotId,SessionId,Timestamp,PresetName," +
-            "AngleDeg,InitialVelocity_ms,BulletMass_g,BulletRadius_mm,Gravity_ms2," +
-            "BoxCount,BoxSize_m,BoxMass_kg,BoxDistance_m,GridRows,GridColumns," +
-            "ImpactHit,ImpactX,ImpactY,ImpactZ,FlightTime_s,MaxHeight_m,Range_m,BoxesHit";
+            "ShotId;SessionId;Timestamp;PresetName;" +
+            "AngleDeg;InitialVelocity_ms;BulletMass_g;BulletRadius_mm;Gravity_ms2;" +
+            "BoxCount;BoxSize_m;BoxMass_kg;BoxDistance_m;GridRows;GridColumns;" +
+            "ImpactHit;ImpactX;ImpactY;ImpactZ;FlightTime_s;MaxHeight_m;Range_m;BoxesHit";
 
         /// <summary>Fila CSV</summary>
         public string ToCsvRow() =>
-            $"{ShotId},{SessionId},{Timestamp},{PresetName}," +
-            $"{AngleDegrees},{InitialVelocity},{BulletMassGrams},{BulletRadiusMm},{Gravity}," +
-            $"{BoxCount},{BoxSizeM},{BoxMassKg},{BoxDistanceM},{GridRows},{GridColumns}," +
-            $"{ImpactHit},{ImpactX},{ImpactY},{ImpactZ},{FlightTimeSeconds},{MaxHeightM},{RangeM},{BoxesHit}";
+            $"{ShotId};{SessionId};{Timestamp};{PresetName};" +
+            $"{AngleDegrees};{InitialVelocity};{BulletMassGrams};{BulletRadiusMm};{Gravity};" +
+            $"{BoxCount};{BoxSizeM};{BoxMassKg};{BoxDistanceM};{GridRows};{GridColumns};" +
+            $"{ImpactHit};{ImpactX};{ImpactY};{ImpactZ};{FlightTimeSeconds};{MaxHeightM};{RangeM};{BoxesHit}";
     }
 }

@@ -195,12 +195,12 @@ namespace BallisticSimulator.UI
             _presetDropdown?.RegisterValueChangedCallback(_ => OnPresetChanged());
 
             // ── Sliders de bala (sincronizar slider ↔ field y actualizar sim) ──
-            LinkSliderToField(_angleSlider,     _angleField,     v => { SimulationManager.Instance.AngleDegrees    = v; SimulationManager.Instance.RefreshPreview(); });
-            LinkSliderToField(_velocitySlider,  _velocityField,  v => { SimulationManager.Instance.InitialVelocity = v; SimulationManager.Instance.RefreshPreview(); });
-            LinkSliderToField(_massSlider,      _massField,      v =>   SimulationManager.Instance.BulletMassG     = v);
-            LinkSliderToField(_radiusSlider,    _radiusField,    v =>   SimulationManager.Instance.BulletRadiusMm  = v);
-            LinkSliderToField(_gravitySlider,   _gravityField,   v => { SimulationManager.Instance.Gravity         = v; SimulationManager.Instance.RefreshPreview(); });
-            LinkSliderToField(_timeScaleSlider, _timeScaleField, v =>   SimulationManager.Instance.TimeScale       = v);
+            LinkSliderToField(_angleSlider,     _angleField,     v => SimulationManager.Instance.SetAngle(v));
+            LinkSliderToField(_velocitySlider,  _velocityField,  v => SimulationManager.Instance.SetVelocity(v));
+            LinkSliderToField(_massSlider,      _massField,      v => SimulationManager.Instance.SetMass(v));
+            LinkSliderToField(_radiusSlider,    _radiusField,    v => SimulationManager.Instance.SetRadius(v));
+            LinkSliderToField(_gravitySlider,   _gravityField,   v => SimulationManager.Instance.SetGravity(v));
+            LinkSliderToField(_timeScaleSlider, _timeScaleField, v => SimulationManager.Instance.SetTimeScale(v));
 
             // ── Sliders de targets (regenerar grilla al soltar) ──
             LinkIntSliderToField(_rowsSlider,  _rowsField,  _ => ApplyTargetConfig());
@@ -257,12 +257,12 @@ namespace BallisticSimulator.UI
                 SetSliderAndField(_massSlider,     _massField,     preset.MassGrams);
                 SetSliderAndField(_radiusSlider,   _radiusField,   preset.RadiusMm);
                 if (SimulationManager.Instance != null)
-                    SimulationManager.Instance.PresetName = preset.PresetName;
+                    SimulationManager.Instance.ApplyPreset(preset);
             }
             else
             {
                 if (SimulationManager.Instance != null)
-                    SimulationManager.Instance.PresetName = "Personalizado";
+                    SimulationManager.Instance.SetPresetName("Personalizado");
             }
         }
 
@@ -373,13 +373,13 @@ namespace BallisticSimulator.UI
         {
             var sim = SimulationManager.Instance;
             if (sim == null) return;
-            sim.AngleDegrees    = _angleSlider?.value ?? 10f;
-            sim.InitialVelocity = _velocitySlider?.value ?? 45f;
-            sim.BulletMassG     = _massSlider?.value ?? 8f;
-            sim.BulletRadiusMm  = _radiusSlider?.value ?? 4.5f;
-            sim.Gravity         = _gravitySlider?.value ?? 9.81f;
-            sim.TimeScale       = _timeScaleSlider?.value ?? 1.0f;
-            sim.RefreshPreview();
+            sim.SetAngle(    _angleSlider?.value     ?? 10f);
+            sim.SetVelocity( _velocitySlider?.value  ?? 45f);
+            sim.SetMass(     _massSlider?.value      ?? 8f);
+            sim.SetRadius(   _radiusSlider?.value    ?? 4.5f);
+            sim.SetGravity(  _gravitySlider?.value   ?? 9.81f);
+            sim.SetTimeScale(_timeScaleSlider?.value ?? 1.0f);
+            // RefreshPreview ya es llamado por SetAngle al final
         }
 
         private static void LinkSliderToField(Slider slider, FloatField field, System.Action<float> onChanged)
