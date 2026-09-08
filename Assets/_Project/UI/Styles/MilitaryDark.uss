@@ -83,7 +83,7 @@
 .hud-left {
     top: 70px;
     left: 20px;
-    width: 360px;
+    width: 390px;
     bottom: 120px;
 }
 
@@ -151,9 +151,12 @@
     flex-grow: 1;
     margin: 0 6px;
     height: 24px;
+    align-self: center;
 }
 
 .param-slider .unity-base-slider__drag-container {
+    position: relative;
+    flex-grow: 1;
     height: 100%;
 }
 
@@ -163,9 +166,10 @@
     height: 3px;
     border-radius: 0;
     position: absolute;
-    top: 10px;
     left: 0;
     right: 0;
+    top: 50%;
+    margin-top: -1px;
 }
 
 .param-slider .unity-base-slider__dragger {
@@ -173,11 +177,11 @@
     border-width: 1px;
     border-color: #00ff41;
     width: 10px;
-    height: 14px;
+    height: 16px;
     border-radius: 0;
     position: absolute;
-    top: 4px;
-    margin-top: 0;
+    top: 50%;
+    margin-top: -8px;
 }
 
 .param-slider .unity-base-slider__dragger:hover {
@@ -228,6 +232,8 @@
     flex-grow: 1;
     margin: 0;
     height: 24px;
+    max-width: 210px;
+    overflow: hidden;
 }
 
 .dropdown .unity-base-popup-field__input {
@@ -236,12 +242,14 @@
     border-width: 1px !important;
     border-radius: 0 !important;
     padding: 2px 6px !important;
+    overflow: hidden;
 }
 
 .dropdown .unity-base-popup-field__text {
     color: var(--col-text);
     font-size: 12px;
     -unity-font-style: bold;
+    overflow: hidden;
 }
 
 .dropdown .unity-base-popup-field__arrow {
@@ -426,4 +434,52 @@
 .btn-batch:active {
     background-color: var(--col-warn);
     color: black;
+}
+
+/* ── Picture-in-Picture Camera Panel ────────────────────────────────────── */
+.pip-panel {
+    position: absolute;
+    bottom: 105px;
+    right: 20px;
+    width: 260px;
+    height: 190px;
+    border-color: var(--col-accent);
+    border-width: 1px;
+    background-color: rgba(0, 8, 3, 0.92);
+    overflow: hidden;
+}
+
+.pip-header {
+    background-color: rgba(0, 255, 65, 0.12);
+    border-bottom-color: var(--col-accent);
+    border-bottom-width: 1px;
+    color: var(--col-accent);
+    font-size: 10px;
+    -unity-font-style: bold;
+    padding: 4px 8px;
+    letter-spacing: 2px;
+}
+
+/* Contenedor de la imagen con efecto scanlines (gradiente de bandas) */
+.pip-scanlines {
+    flex-grow: 1;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 1);
+}
+
+.pip-image {
+    width: 100%;
+    height: 100%;
+    -unity-background-scale-mode: stretch-to-fill;
+}
+
+.pip-info-label {
+    color: var(--col-text-dim);
+    font-size: 9px;
+    -unity-font-style: bold;
+    padding: 3px 8px;
+    letter-spacing: 1px;
+    border-top-color: rgba(0, 143, 17, 0.3);
+    border-top-width: 1px;
+    -unity-text-align: middle-left;
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using BallisticSimulator.Camera;
 using BallisticSimulator.Data;
 using BallisticSimulator.Physics;
 using BallisticSimulator.Targets;
@@ -23,6 +24,9 @@ namespace BallisticSimulator.Core
         [SerializeField] private TargetSpawner     _targetSpawner;
         [SerializeField] private Transform         _muzzleTransform;
         [SerializeField] private Transform         _gunBaseTransform;
+
+        [Header("Cámara PiP")]
+        [SerializeField] private BulletPiPCamera _pipCamera;
 
         // ── Parámetros actuales (sincronizados desde SidePanelUI) ─────────────────
         [HideInInspector] public float  AngleDegrees    = 10f;
@@ -120,6 +124,9 @@ namespace BallisticSimulator.Core
         {
             if (_bulletController != null)
                 _bulletController.gameObject.SetActive(false);
+
+            // Desactivar PiP al resetear
+            _pipCamera?.Deactivate();
 
             _targetSpawner?.ResetTargets();
             _trajectoryPreview?.Show();
@@ -219,7 +226,19 @@ namespace BallisticSimulator.Core
         {
             FinalizeShot(pos, time, hit: false);
             _batchShotComplete = true;
-            if (!_batchMode) Reset();
+
+            if (_batchMode)
+            {
+                // Batch: el loop de RunBatch se encarga de continuar
+                if (_bulletController != null)
+                    _bulletController.gameObject.SetActive(false);
+            }
+            else
+            {
+                // Manual: datos guardados, listo para disparar de nuevo sin resetear targets
+                _pipCamera?.Deactivate();
+                ReadyForNextShot();
+            }
         }
 
         private void HandleHit(Vector3 pos, float time, GameObject target)
@@ -242,14 +261,37 @@ namespace BallisticSimulator.Core
 
             if (_batchMode)
             {
-                // En batch: reset mínimo para continuar (sin volver a Setup todavía)
+                // Batch: reset mínimo para continuar al siguiente disparo
                 if (_bulletController != null)
                     _bulletController.gameObject.SetActive(false);
             }
-            // En modo normal: el usuario ve el ragdoll y presiona Reset manualmente
+            else
+            {
+                // Manual: datos guardados, listo para disparar de nuevo sin resetear targets
+                _pipCamera?.Deactivate();
+                ReadyForNextShot();
+            }
         }
 
         // ── Helpers ───────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Prepara el simulador para el siguiente disparo sin resetear la escena.
+        /// Llamado automáticamente al terminar un disparo manual (aterrizaje o impacto).
+        /// Los targets NO se limpian — el usuario debe pulsar REINICIAR para eso.
+        /// </summary>
+        private void ReadyForNextShot()
+        {
+            if (_bulletController != null)
+                _bulletController.gameObject.SetActive(false);
+
+            _trajectoryPreview?.Show();
+            RefreshPreview();
+
+            if (GameStateManager.Instance != null)
+                GameStateManager.Instance.SetState(GameStateManager.SimState.Setup);
+        }
+
         private void LaunchInternal()
         {
             if (_bulletController == null || _muzzleTransform == null) return;
@@ -264,6 +306,10 @@ namespace BallisticSimulator.Core
             _bulletController.Gravity         = Gravity;
             _bulletController.gameObject.SetActive(true);
             _bulletController.Launch(0f);
+
+            // Activar PiP solo en disparos manuales (no en batch)
+            if (!_batchMode)
+                _pipCamera?.Activate(_bulletController.transform);
 
             _trajectoryPreview?.Hide();
             if (GameStateManager.Instance != null)

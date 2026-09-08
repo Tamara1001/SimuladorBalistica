@@ -50,6 +50,7 @@ public static class BallisticSceneSetup
             Step("Creando materials y assets...", 0.15f, CreateMaterialsAndAssets);
             Step("Creando prefab TargetBox...",  0.40f, CreateTargetBoxPrefab);
             Step("Construyendo jerarquía...",    0.55f, BuildSceneHierarchy);
+            Step("Creando cámara PiP...",        0.75f, CreatePiPCamera);
             Step("Asignando referencias...",     0.80f, AssignReferences);
             Step("Guardando todo...",            0.95f, SaveAll);
         }
@@ -495,6 +496,62 @@ public static class BallisticSceneSetup
 
         MarkSceneDirty();
         Debug.Log("[Setup] ✓ Todas las referencias asignadas.");
+    }
+
+    [MenuItem("Tools/Ballistic Simulator/Paso 5b ― Crear Cámara PiP", false, 24)]
+    public static void CreatePiPCamera()
+    {
+        const string rtPath  = "Assets/_Project/BulletPiP_RT.renderTexture";
+        const string camName = "BulletPiPCameraGO";
+
+        // ── Crear RenderTexture asset ─────────────────────────────────────────
+        var existing = AssetDatabase.LoadAssetAtPath<RenderTexture>(rtPath);
+        if (existing == null)
+        {
+            var rt = new RenderTexture(512, 384, 16, RenderTextureFormat.Default);
+            rt.name       = "BulletPiP_RT";
+            rt.filterMode = FilterMode.Bilinear;
+            rt.antiAliasing = 2;
+            rt.Create();
+            AssetDatabase.CreateAsset(rt, rtPath);
+            AssetDatabase.SaveAssets();
+            existing = rt;
+            Debug.Log($"[Setup] ✓ RenderTexture creada → {rtPath}");
+        }
+        else
+        {
+            Debug.Log("[Setup] RenderTexture ya existe — reutilizando.");
+        }
+
+        // ── Crear GameObject de la cámara PiP en escena ──────────────────────
+        var grpCameras = GetOrCreate("[CAMERAS]");
+        var pipCamGO   = GetOrCreate(camName, grpCameras.transform);
+
+        var pipCam = GetOrAddComponent<UnityEngine.Camera>(pipCamGO);
+        pipCam.fieldOfView  = 55f;
+        pipCam.nearClipPlane = 0.1f;
+        pipCam.farClipPlane  = 500f;
+        pipCam.clearFlags    = CameraClearFlags.SolidColor;
+        pipCam.backgroundColor = new Color(0.01f, 0.04f, 0.02f, 1f);
+        pipCam.enabled = false; // Empieza desactivada (BulletPiPCamera la activa al disparar)
+
+        var pipScript = GetOrAddComponent<BulletPiPCamera>(pipCamGO);
+        pipScript.SetRenderTexture(existing);
+        pipCam.targetTexture = existing;
+
+        // Posicionar fuera de la escena (sin importar, se mueve en runtime)
+        pipCamGO.transform.position = new Vector3(-10f, 5f, -15f);
+
+        // ── Asignar referencias al SimulationManager y SidePanelUI ────────────
+        var simGO = FindRequired("SimulationManager");
+        if (simGO != null)
+        {
+            var sim = simGO.GetComponent<SimulationManager>();
+            SetField(sim, "_pipCamera", pipScript);
+        }
+
+        MarkSceneDirty();
+        Debug.Log($"[Setup] ✓ BulletPiPCamera creada → {camName} | RT: {rtPath}");
     }
 
     [MenuItem("Tools/Ballistic Simulator/Paso 6 ― Guardar Todo", false, 25)]

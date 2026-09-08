@@ -150,5 +150,14 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
+        <!-- PIP CAMERA (esquina inferior derecha, sobre el panel de acciones) -->
+        <ui:VisualElement name="pip-panel" class="hud-panel pip-panel" style="display: none;">
+            <ui:Label text="► CAM: BALA EN VUELO" class="pip-header"/>
+            <ui:VisualElement class="pip-scanlines">
+                <ui:Image name="pip-image" class="pip-image"/>
+            </ui:VisualElement>
+            <ui:Label name="pip-info" text="" class="pip-info-label"/>
+        </ui:VisualElement>
+
     </ui:VisualElement>
 </ui:UXML>

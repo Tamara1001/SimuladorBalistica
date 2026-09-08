@@ -1,4 +1,5 @@
 using System.Collections;
+using BallisticSimulator.Camera;
 using BallisticSimulator.Core;
 using BallisticSimulator.Data;
 using BallisticSimulator.Targets;
@@ -74,6 +75,12 @@ namespace BallisticSimulator.UI
         private Button     _batchRunButton;
         private Label      _batchStatusLabel;
 
+        // PiP Camera
+        private VisualElement   _pipPanel;
+        private UnityEngine.UIElements.Image _pipImage;
+        private Label           _pipInfoLabel;
+        private BulletPiPCamera _pipCamera;
+
         // ── Unity ────────────────────────────────────────────────────────────────
         private void OnEnable()
         {
@@ -81,6 +88,9 @@ namespace BallisticSimulator.UI
             BindElements(root);
             InitPresetDropdown();
             RegisterCallbacks();
+
+            // Buscar la cámara PiP en escena
+            _pipCamera = FindFirstObjectByType<BulletPiPCamera>();
 
             // Suscribirse a eventos del sim
             if (SimulationManager.Instance != null)
@@ -157,6 +167,11 @@ namespace BallisticSimulator.UI
             _batchVelStep     = root.Q<FloatField>("batch-vel-step");
             _batchRunButton   = root.Q<Button>("btn-batch-run");
             _batchStatusLabel = root.Q<Label>("lbl-batch-status");
+
+            // PiP Camera
+            _pipPanel     = root.Q<VisualElement>("pip-panel");
+            _pipImage     = root.Q<UnityEngine.UIElements.Image>("pip-image");
+            _pipInfoLabel = root.Q<Label>("pip-info");
 
             // Evitar que Sliders, Botones y Desplegables roben el foco del teclado (WASD)
             root.Query<VisualElement>()
@@ -273,6 +288,7 @@ namespace BallisticSimulator.UI
         {
             bool setup  = state == GameStateManager.SimState.Setup;
             bool paused = state == GameStateManager.SimState.Paused;
+            bool firing = state == GameStateManager.SimState.Firing;
 
             _fireButton?.SetEnabled(setup);
             _pauseButton?.SetEnabled(!setup);
@@ -290,6 +306,30 @@ namespace BallisticSimulator.UI
                     GameStateManager.SimState.BatchRunning => "LOTE EN PROGRESO...",
                     _                                      => ""
                 };
+
+            // ── PiP Panel ──
+            if (_pipPanel != null)
+            {
+                if (firing || paused)
+                {
+                    // Mostrar el panel PiP y asignar la RenderTexture
+                    _pipPanel.style.display = DisplayStyle.Flex;
+
+                    if (_pipCamera == null)
+                        _pipCamera = FindFirstObjectByType<BulletPiPCamera>();
+
+                    if (_pipCamera != null && _pipCamera.RenderTexture != null && _pipImage != null)
+                    {
+                        _pipImage.image     = _pipCamera.RenderTexture;
+                        _pipImage.scaleMode = ScaleMode.StretchToFill;
+                    }
+                }
+                else
+                {
+                    // Ocultar el panel PiP en estado Setup / Batch
+                    _pipPanel.style.display = DisplayStyle.None;
+                }
+            }
         }
 
         private void OnShotCompleted(ShotData shot)
