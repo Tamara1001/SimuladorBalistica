@@ -1,4 +1,5 @@
 using UnityEngine;
+using BallisticSimulator.Physics;
 
 namespace BallisticSimulator.Camera
 {
@@ -46,28 +47,36 @@ namespace BallisticSimulator.Camera
                 _cam.targetTexture = _renderTexture;
         }
 
+        private Vector3 _lockedForward = Vector3.right;
+
         private void LateUpdate()
         {
             if (!_active || _target == null) return;
 
-            // Calcular la dirección de vuelo de la bala en el plano XZ
-            // La bala viaja en el eje +X con arco en Y, así que la cámara va detrás en -X
-            Vector3 bulletForward = _target.forward;
+            // Obtener el script de la bala para saber si sigue volando o ya chocó
+            var bullet = _target.GetComponent<BulletController>();
+            bool isFlying = bullet != null && bullet.IsFlying;
 
-            // Si el forward de la bala es casi vertical, usar X global como fallback
-            if (Mathf.Abs(bulletForward.x) < 0.1f && Mathf.Abs(bulletForward.z) < 0.1f)
-                bulletForward = Vector3.right;
+            // Si está volando, actualizamos nuestra dirección de persecución
+            if (isFlying)
+            {
+                Vector3 bulletForward = _target.forward;
+                bulletForward.y = 0f; // Aplanar para evitar volteretas verticales de cámara
+                
+                if (bulletForward.sqrMagnitude > 0.01f)
+                    _lockedForward = bulletForward.normalized;
+            }
 
-            // Posición deseada: detrás de la bala + altura
+            // Posición deseada: detrás de la bala usando el ángulo bloqueado + altura
             Vector3 desiredPos = _target.position
-                               - bulletForward.normalized * _followDistance
+                               - _lockedForward * _followDistance
                                + Vector3.up * _heightOffset;
 
             // Suavizar el movimiento
             transform.position = Vector3.Lerp(transform.position, desiredPos, 1f - _smoothing);
 
-            // Siempre mirar a la bala
-            transform.LookAt(_target.position + bulletForward * 1.5f);
+            // Siempre mirar al centro de la bala (con un ligero offset)
+            transform.LookAt(_target.position + _lockedForward * 1.5f);
         }
 
         // ── API pública ───────────────────────────────────────────────────────────

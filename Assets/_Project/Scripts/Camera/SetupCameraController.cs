@@ -23,13 +23,8 @@ namespace BallisticSimulator.Camera
         [SerializeField] private float _zoomSensitivity  = 3f;
         [SerializeField] private float _moveSpeed        = 18f;
 
-        [Header("Límites de Zoom")]
-        [SerializeField] private float _minDistance = 3f;
-        [SerializeField] private float _maxDistance = 150f;
-
-        private float _distance = 18f;
-        private float _yaw      = 57f;
-        private float _pitch    = 3.5f;
+        private float _yaw   = 57f;
+        private float _pitch = 3.5f;
         private bool  _isRightClickPressed;
 
         private void OnEnable()
@@ -72,7 +67,7 @@ namespace BallisticSimulator.Camera
             // ── Scroll / Avance ──
             if (Mathf.Abs(mouseScroll) > 0.01f)
             {
-                _targetPoint += transform.forward * Mathf.Sign(mouseScroll) * 3f;
+                _targetPoint += transform.forward * Mathf.Sign(mouseScroll) * _zoomSensitivity;
             }
 
             // ── Movimiento WASD/QE (Detección Híbrida Combinada) ──

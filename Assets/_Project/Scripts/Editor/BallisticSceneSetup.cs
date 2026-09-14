@@ -616,12 +616,11 @@ public static class BallisticSceneSetup
 
     private static void CreateBulletPresets()
     {
-        // nombre asset, PresetName, masa(g), radio(mm), v0(m/s para campo de 50m)
-        CreatePresetAsset("Preset_22LR",   ".22 LR",            2.6f,  2.80f,  35f);
-        CreatePresetAsset("Preset_9mm",    "9mm Parabellum",    8.0f,  4.50f,  45f);
-        CreatePresetAsset("Preset_762x39", "7.62x39 (AK-47)",  8.0f,  3.95f,  65f);
-        CreatePresetAsset("Preset_308Win", ".308 Winchester",  10.0f,  3.90f,  80f);
-        CreatePresetAsset("Preset_50BMG",  ".50 BMG",          42.0f,  6.35f,  100f);
+        // nombre asset, PresetName, masa(g), radio(mm), v0(m/s)
+        CreatePresetAsset("Preset_Ligera", "Bala Ligera (6 lb)",     2700f,  45.0f,  200f);
+        CreatePresetAsset("Preset_Media",  "Bala Media (12 lb)",     5400f,  58.0f,  150f);
+        CreatePresetAsset("Preset_Pesada", "Bala Pesada (24 lb)",   10800f,  73.0f,  120f);
+        CreatePresetAsset("Preset_Demo",   "Bala Demolición (50 lb)",22500f, 100.0f,  90f);
     }
 
     private static void CreatePresetAsset(

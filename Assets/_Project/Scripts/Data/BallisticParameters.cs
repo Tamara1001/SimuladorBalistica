@@ -24,5 +24,8 @@ namespace BallisticSimulator.Data
         [Header("Entorno")]
         public float Gravity   = 9.81f; // m/s²
         public float TimeScale = 1.0f;  // multiplicador de tiempo
+        
+        [Header("Tiempos")]
+        public float PostImpactWaitSeconds = 3.0f; // Tiempo a esperar tras el impacto para registrar la caída de las cajas
     }
 }

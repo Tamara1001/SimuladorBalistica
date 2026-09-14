@@ -84,7 +84,6 @@
     top: 70px;
     left: 20px;
     width: 390px;
-    bottom: 120px;
 }
 
 /* ── Right Panel (Targets) ───────────────────────────────────────────────── */
@@ -440,9 +439,9 @@
 .pip-panel {
     position: absolute;
     bottom: 105px;
-    right: 20px;
-    width: 260px;
-    height: 190px;
+    left: 20px;
+    width: 390px;
+    height: 320px;
     border-color: var(--col-accent);
     border-width: 1px;
     background-color: rgba(0, 8, 3, 0.92);

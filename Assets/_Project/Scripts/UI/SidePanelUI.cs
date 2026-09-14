@@ -94,7 +94,10 @@ namespace BallisticSimulator.UI
 
             // Suscribirse a eventos del sim
             if (SimulationManager.Instance != null)
+            {
                 SimulationManager.Instance.OnShotCompleted += OnShotCompleted;
+                SimulationManager.Instance.OnBoxHitCountChanged += OnBoxHitCountChanged;
+            }
 
             if (GameStateManager.Instance != null)
                 GameStateManager.Instance.OnStateChanged.AddListener(OnStateChanged);
@@ -106,10 +109,22 @@ namespace BallisticSimulator.UI
         private void OnDisable()
         {
             if (SimulationManager.Instance != null)
+            {
                 SimulationManager.Instance.OnShotCompleted -= OnShotCompleted;
+                SimulationManager.Instance.OnBoxHitCountChanged -= OnBoxHitCountChanged;
+            }
 
             if (GameStateManager.Instance != null)
                 GameStateManager.Instance.OnStateChanged.RemoveListener(OnStateChanged);
+        }
+
+        private void OnBoxHitCountChanged(int count)
+        {
+            // Actualizar la UI en vivo mientras caen las cajas y la bala ya impactó
+            if (_statusLabel != null && GameStateManager.Instance != null && GameStateManager.Instance.IsFiring)
+            {
+                _statusLabel.text = $"IMPACTO!\nCalculando daños...\nCajas cayendo: {count}";
+            }
         }
 
         // ── Binding de elementos ──────────────────────────────────────────────────
@@ -339,9 +354,15 @@ namespace BallisticSimulator.UI
             if (_flightTimeLabel != null) _flightTimeLabel.text = $"T. vuelo: {shot.FlightTimeSeconds:F2} s";
             if (_statusLabel != null)
             {
-                _statusLabel.text = shot.ImpactHit
-                    ? $"💥 Impacto · {shot.BoxesHit} caja(s) golpeada(s)"
-                    : "🛬 Aterrizó sin impacto";
+                if (shot.ImpactHit)
+                {
+                    float score = shot.BoxesHit * 100f + (shot.CollisionImpulse / 10f);
+                    _statusLabel.text = $"IMPACTO\nCajas derribadas: {shot.BoxesHit}\nVel. relativa: {shot.RelativeVelocity:F1} m/s\nImpulso: {shot.CollisionImpulse:F1} Ns\nPUNTUACIÓN: {score:F0}";
+                }
+                else
+                {
+                    _statusLabel.text = "ATERRIZÓ FUERA\nPUNTUACIÓN: 0";
+                }
             }
         }
 
@@ -358,14 +379,14 @@ namespace BallisticSimulator.UI
             float velMax    = _batchVelMax?.value    ?? 100f;
             float velStep   = _batchVelStep?.value   ?? 1f;
 
-            StartCoroutine(SimulationManager.Instance.RunBatch(
+            SimulationManager.Instance.StartBatchTest(
                 angleMin, angleMax, angleStep,
                 velMin, velMax, velStep,
                 (done, total) =>
                 {
                     if (_batchStatusLabel != null)
                         _batchStatusLabel.text = $"Batch: {done}/{total}";
-                }));
+                });
         }
 
         // ── Helpers de binding ────────────────────────────────────────────────────
@@ -379,6 +400,10 @@ namespace BallisticSimulator.UI
             sim.SetRadius(   _radiusSlider?.value    ?? 4.5f);
             sim.SetGravity(  _gravitySlider?.value   ?? 9.81f);
             sim.SetTimeScale(_timeScaleSlider?.value ?? 1.0f);
+            
+            // Forzar actualización de la configuración de Targets para que la escena coincida con los valores UI por defecto
+            ApplyTargetConfig();
+            
             // RefreshPreview ya es llamado por SetAngle al final
         }
 

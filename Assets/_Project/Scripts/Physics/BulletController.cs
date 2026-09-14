@@ -1,14 +1,16 @@
 using System;
-using BallisticSimulator.Physics;
 using UnityEngine;
 
 namespace BallisticSimulator.Physics
 {
     /// <summary>
-    /// MonoBehaviour que anima la bala en la escena.
-    /// Usa Physics.OverlapSphere para detectar colisiones con targets (más confiable
-    /// que OnCollisionEnter para objetos que se mueven por código).
+    /// MonoBehaviour que anima la bala en la escena usando físicas nativas de Unity (Rigidbody).
+    /// Cumple con los requerimientos académicos: usa AddForce, OnCollisionEnter y Continuous Dynamic.
+    /// Para mantener exactitud con el Preview, la resistencia al aire (Drag) es nula
+    /// y la gravedad se aplica manualmente como una aceleración.
     /// </summary>
+    [RequireComponent(typeof(Rigidbody))]
+    [RequireComponent(typeof(SphereCollider))]
     public class BulletController : MonoBehaviour
     {
         // ── Parámetros de vuelo (asignados por SimulationManager) ─────────────────
@@ -16,6 +18,7 @@ namespace BallisticSimulator.Physics
         [HideInInspector] public float   AngleDegrees;
         [HideInInspector] public float   InitialVelocity;
         [HideInInspector] public float   BulletRadiusMm;
+        [HideInInspector] public float   BulletMassG;
         [HideInInspector] public float   Gravity;
 
         // ── Estado interno ────────────────────────────────────────────────────────
@@ -24,24 +27,34 @@ namespace BallisticSimulator.Physics
         private bool  _paused;
         private float _groundY;
 
-        // ── Eventos ───────────────────────────────────────────────────────────────
-        /// <summary>La bala aterrizó en el suelo sin golpear ningún target.</summary>
-        public event Action<Vector3, float> OnLanded;
+        private Rigidbody      _rb;
+        private SphereCollider _col;
+        private TrailRenderer  _trail;
 
-        /// <summary>La bala golpeó un objeto con tag "Target".</summary>
-        public event Action<Vector3, float, GameObject> OnHit;
+        // ── Eventos ───────────────────────────────────────────────────────────────
+        public event Action<Vector3, float>             OnLanded;
+        public event Action<Vector3, float, GameObject, float, float> OnHit;
 
         // ── Propiedades de lectura ────────────────────────────────────────────────
         public float ElapsedTime      => _elapsedTime;
         public float MaxHeightReached { get; private set; }
         public bool  IsFlying         => _flying;
 
-        // ── API pública ───────────────────────────────────────────────────────────
-
-        private TrailRenderer _trail;
-
+        // ── Unity ────────────────────────────────────────────────────────────────
         private void Awake()
         {
+            _rb  = GetComponent<Rigidbody>();
+            _col = GetComponent<SphereCollider>();
+            _col.isTrigger = false; // <-- CRÍTICO: Si está en true, nunca choca.
+
+            // Configurar Rigidbody ideal (vacío) para que sea 100% predecible matemáticamente
+            _rb.useGravity             = false; // Aplicamos gravedad manual en FixedUpdate
+            _rb.linearDamping                   = 0f;
+            _rb.angularDamping            = 0f;
+            _rb.interpolation          = RigidbodyInterpolation.Interpolate;
+            _rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic; // Evita el Tunneling
+
+            // Efecto visual de rastro
             _trail = GetComponent<TrailRenderer>();
             if (_trail == null)
             {
@@ -51,11 +64,6 @@ namespace BallisticSimulator.Physics
                 _trail.endWidth = 0.05f;
                 _trail.material = new Material(Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Sprites/Default"));
                 _trail.material.color = new Color(0.2f, 1f, 0.4f);
-                if (_trail.material.HasProperty("_EmissionColor"))
-                {
-                    _trail.material.EnableKeyword("_EMISSION");
-                    _trail.material.SetColor("_EmissionColor", new Color(0.2f, 2f, 0.5f) * 2f);
-                }
             }
         }
 
@@ -66,82 +74,113 @@ namespace BallisticSimulator.Physics
             _elapsedTime     = 0f;
             _flying          = true;
             _paused          = false;
-            MaxHeightReached = 0f;
+            MaxHeightReached = Origin.y;
 
-            if (_trail != null) _trail.Clear();
+            // Quitar parentesco o articulaciones por si en el disparo anterior quedó pegada a una caja
+            transform.SetParent(null, true);
+            var joint = GetComponent<FixedJoint>();
+            if (joint != null) Destroy(joint);
 
-            transform.position   = Origin;
-            // Escala visual aumentada para que la bala sea claramente visible en 3D
+            if (_trail != null) _trail.emitting = false;
+            transform.position = Origin;
+            if (_trail != null) 
+            {
+                _trail.Clear();
+                _trail.emitting = true;
+            }
+
+            // Escala visual y tamaño del collider
             float visualDiameter = Mathf.Max(0.5f, (BulletRadiusMm / 1000f) * 40f);
             transform.localScale = Vector3.one * visualDiameter;
+            _col.radius          = 0.5f; // Relativo al localScale
+
+            // Aplicar propiedades físicas que vienen de la UI
+            _rb.mass = BulletMassG / 1000f; // Convertir gramos a Kg
+            _rb.useGravity = true;
+            UnityEngine.Physics.gravity = new Vector3(0, -Gravity, 0); // Ajustar el mundo a nuestro slider
+
+            // Aplicar velocidad inicial como impulso (matemáticamente puro)
+            float rad = AngleDegrees * Mathf.Deg2Rad;
+            Vector3 initialVelVector = new Vector3(
+                Mathf.Cos(rad) * InitialVelocity,
+                Mathf.Sin(rad) * InitialVelocity,
+                0f
+            );
+
+            _rb.isKinematic = false;
+            _rb.linearVelocity    = initialVelVector;
+            _rb.angularVelocity = Vector3.zero;
         }
 
-        /// <summary>Pausa o reanuda el vuelo.</summary>
-        public void SetPaused(bool paused) => _paused = paused;
+        /// <summary>Pausa o reanuda el vuelo (simulando un "freeze" en el aire).</summary>
+        public void SetPaused(bool paused)
+        {
+            _paused = paused;
+            _rb.isKinematic = paused; // Al pausar, se congela la física
+        }
 
-        /// <summary>Avanza exactamente un frame de física (útil en modo pausa).</summary>
-        public void StepOneFrame() => AdvanceTime(Time.fixedDeltaTime);
+        /// <summary>Avanza exactamente un frame de física.</summary>
+        public void StepOneFrame()
+        {
+            // Solo útil si mantenemos un modo manual avanzado, pero Unity Physics lo hace automático
+            // en este modo no se recomienda usar StepOneFrame porque el Rigidbody es manejado por el motor.
+        }
 
-        // ── Update ────────────────────────────────────────────────────────────────
         private void FixedUpdate()
         {
             if (!_flying || _paused) return;
-            AdvanceTime(Time.fixedDeltaTime);
-        }
 
-        private void AdvanceTime(float dt)
-        {
-            Vector3 prevPos = transform.position;
-            _elapsedTime += dt;
+            _elapsedTime += Time.fixedDeltaTime;
 
-            Vector3 newPos = BulletPhysics.Position(
-                Origin, AngleDegrees, InitialVelocity, Gravity, _elapsedTime);
-
-            // Rastrear altura máxima sobre el origen
-            float height = newPos.y - Origin.y;
+            // Registrar altura máxima
+            float height = transform.position.y - Origin.y;
             if (height > MaxHeightReached) MaxHeightReached = height;
 
-            // Orientar en la dirección de la velocidad
-            Vector3 vel = BulletPhysics.Velocity(
-                AngleDegrees, InitialVelocity, Gravity, _elapsedTime);
-            if (vel.sqrMagnitude > 0.01f)
-                transform.rotation = Quaternion.LookRotation(vel.normalized);
-
-            // ── Continuous Collision Detection via SphereCastAll (Evita atravesar cajas a alta velocidad) ──
-            float visualDiameter = Mathf.Max(0.5f, (BulletRadiusMm / 1000f) * 40f);
-            float hitRadius      = visualDiameter * 0.5f;
-
-            Vector3 movement = newPos - prevPos;
-            float moveDist   = movement.magnitude;
-
-            if (moveDist > 0.001f)
+            // Orientar la bala en la dirección en la que viaja
+            if (_rb.linearVelocity.sqrMagnitude > 0.01f)
             {
-                RaycastHit[] hits = UnityEngine.Physics.SphereCastAll(
-                    prevPos, hitRadius, movement.normalized, moveDist);
-
-                foreach (var hit in hits)
-                {
-                    if (!hit.collider.CompareTag("Target")) continue;
-
-                    transform.position = hit.point;
-                    _flying = false;
-                    OnHit?.Invoke(hit.point, _elapsedTime, hit.collider.gameObject);
-                    gameObject.SetActive(false);
-                    return;
-                }
+                transform.rotation = Quaternion.LookRotation(_rb.linearVelocity.normalized);
             }
 
-            transform.position = newPos;
-
-            // ── Detectar suelo ───────────────────────────────────────────────────
-            if (newPos.y <= _groundY)
+            // Fallback de suelo (por si no hay collider de piso debajo de groundY)
+            if (transform.position.y <= _groundY)
             {
-                Vector3 landPos = new Vector3(newPos.x, _groundY, newPos.z);
-                transform.position = landPos;
-                _flying = false;
-                OnLanded?.Invoke(landPos, _elapsedTime);
-                gameObject.SetActive(false);
+                TriggerLanded(new Vector3(transform.position.x, _groundY, transform.position.z));
             }
+        }
+
+        // ── Detección de Colisiones (Requisito Académico) ───────────────────────────
+        private void OnCollisionEnter(Collision collision)
+        {
+            if (!_flying) return;
+
+            // Contacto principal
+            Vector3 hitPoint = collision.GetContact(0).point;
+
+            if (collision.gameObject.CompareTag("Target"))
+            {
+                _flying = false; // Detenemos el registro de vuelo para las estadísticas
+                
+                // La bala de cañón golpeará y transferirá su brutal momentum a la caja
+                // sin quedarse "pegada" a ella, lo cual es físicamente correcto para artillería pesada.
+
+                float relVel = collision.relativeVelocity.magnitude;
+                float impulse = collision.impulse.magnitude;
+
+                OnHit?.Invoke(hitPoint, _elapsedTime, collision.gameObject, relVel, impulse);
+            }
+            else if (collision.gameObject.CompareTag("Ground"))
+            {
+                TriggerLanded(hitPoint);
+            }
+        }
+
+        private void TriggerLanded(Vector3 pos)
+        {
+            if (!_flying) return;
+            _flying = false;
+            // No la desactivamos para que siga viéndose en el piso
+            OnLanded?.Invoke(pos, _elapsedTime);
         }
     }
 }

@@ -5,7 +5,6 @@
         <!-- HEADER (TOP CENTER) -->
         <ui:VisualElement class="hud-header">
             <ui:Label text="SIMULADOR BALÍSTICO" class="hud-title"/>
-            <ui:Label name="lbl-status" text="EN ESPERA" class="hud-status"/>
         </ui:VisualElement>
 
         <!-- LEFT PANEL (MUNICIÓN) -->
@@ -31,14 +30,14 @@
 
                 <ui:VisualElement class="field-row">
                     <ui:Label text="MASA (g)" class="field-label"/>
-                    <ui:Slider name="mass-slider" low-value="0.5" high-value="100" value="8" class="param-slider"/>
-                    <ui:FloatField name="mass-field" value="8" class="param-field"/>
+                    <ui:Slider name="mass-slider" low-value="0.5" high-value="10000" value="5400" class="param-slider"/>
+                    <ui:FloatField name="mass-field" value="5400" class="param-field"/>
                 </ui:VisualElement>
 
                 <ui:VisualElement class="field-row">
                     <ui:Label text="RADIO (mm)" class="field-label"/>
-                    <ui:Slider name="radius-slider" low-value="1" high-value="30" value="4.5" class="param-slider"/>
-                    <ui:FloatField name="radius-field" value="4.5" class="param-field"/>
+                    <ui:Slider name="radius-slider" low-value="1" high-value="200" value="58" class="param-slider"/>
+                    <ui:FloatField name="radius-field" value="58" class="param-field"/>
                 </ui:VisualElement>
 
                 <ui:VisualElement class="field-row" style="margin-top: 15px; border-top-width: 1px; border-color: rgba(0, 143, 17, 0.3); padding-top: 10px;">
@@ -61,32 +60,32 @@
             <ui:VisualElement class="panel-content">
                 <ui:VisualElement class="field-row">
                     <ui:Label text="FILAS" class="field-label"/>
-                    <ui:SliderInt name="rows-slider" low-value="0" high-value="5" value="2" class="param-slider"/>
-                    <ui:IntegerField name="rows-field" value="2" class="param-field"/>
+                    <ui:SliderInt name="rows-slider" low-value="1" high-value="20" value="5" class="param-slider"/>
+                    <ui:IntegerField name="rows-field" value="5" class="param-field"/>
                 </ui:VisualElement>
 
                 <ui:VisualElement class="field-row">
                     <ui:Label text="COLUMNAS" class="field-label"/>
-                    <ui:SliderInt name="cols-slider" low-value="0" high-value="5" value="3" class="param-slider"/>
-                    <ui:IntegerField name="cols-field" value="3" class="param-field"/>
+                    <ui:SliderInt name="cols-slider" low-value="1" high-value="20" value="5" class="param-slider"/>
+                    <ui:IntegerField name="cols-field" value="5" class="param-field"/>
                 </ui:VisualElement>
 
                 <ui:VisualElement class="field-row">
                     <ui:Label text="PROFUNDIDAD" class="field-label"/>
-                    <ui:SliderInt name="depth-slider" low-value="1" high-value="5" value="2" class="param-slider"/>
+                    <ui:SliderInt name="depth-slider" low-value="1" high-value="10" value="2" class="param-slider"/>
                     <ui:IntegerField name="depth-field" value="2" class="param-field"/>
                 </ui:VisualElement>
 
                 <ui:VisualElement class="field-row" style="margin-top: 10px; border-top-width: 1px; border-color: rgba(0, 143, 17, 0.3); padding-top: 10px;">
                     <ui:Label text="TAMAÑO (m)" class="field-label"/>
-                    <ui:Slider name="boxsize-slider" low-value="0.1" high-value="3" value="1" class="param-slider"/>
-                    <ui:FloatField name="boxsize-field" value="1" class="param-field"/>
+                    <ui:Slider name="boxsize-slider" low-value="0.1" high-value="3" value="0.5" class="param-slider"/>
+                    <ui:FloatField name="boxsize-field" value="0.5" class="param-field"/>
                 </ui:VisualElement>
 
                 <ui:VisualElement class="field-row">
                     <ui:Label text="MASA (kg)" class="field-label"/>
-                    <ui:Slider name="boxmass-slider" low-value="0.5" high-value="500" value="20" class="param-slider"/>
-                    <ui:FloatField name="boxmass-field" value="20" class="param-field"/>
+                    <ui:Slider name="boxmass-slider" low-value="0.1" high-value="50" value="1.5" class="param-slider"/>
+                    <ui:FloatField name="boxmass-field" value="1.5" class="param-field"/>
                 </ui:VisualElement>
 
                 <ui:VisualElement class="field-row">
@@ -98,6 +97,7 @@
 
             <ui:Label text="> DATOS: ÚLTIMO DISPARO" class="panel-heading" style="margin-top: 5px;"/>
             <ui:VisualElement class="panel-content results-container">
+                <ui:Label name="lbl-status"     text="EN ESPERA" class="result-label" style="color: #00ff44; -unity-font-style: bold; margin-bottom: 5px; white-space: normal;"/>
                 <ui:Label name="lbl-range"      text="RANGO: —" class="result-label"/>
                 <ui:Label name="lbl-maxheight"  text="ALT. MÁX: —" class="result-label"/>
                 <ui:Label name="lbl-flighttime" text="T. VUELO: —" class="result-label"/>

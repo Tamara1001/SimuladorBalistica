@@ -118,16 +118,29 @@ namespace BallisticSimulator.Core
         /// <summary>Resetea la escena: bala, targets y preview.</summary>
         public void Reset()
         {
+            // Cancelar el lote si está en ejecución
+            if (_batchMode)
+            {
+                if (_batchCoroutine != null)
+                {
+                    StopCoroutine(_batchCoroutine);
+                    _batchCoroutine = null;
+                }
+                _batchMode = false;
+                Time.timeScale = _params.TimeScale; // Restaurar el tiempo normal forzosamente
+            }
+
             if (_bulletController != null)
                 _bulletController.gameObject.SetActive(false);
 
             _pipCamera?.Deactivate();
             _targetSpawner?.ResetTargets();
+            
+            if (GameStateManager.Instance != null)
+                GameStateManager.Instance.SetState(GameStateManager.SimState.Setup);
+
             _trajectoryPreview?.Show();
             RefreshPreview();
-
-            if (!_batchMode && GameStateManager.Instance != null)
-                GameStateManager.Instance.SetState(GameStateManager.SimState.Setup);
         }
 
         /// <summary>Alterna pausa / reanuda la simulación.</summary>
@@ -153,8 +166,14 @@ namespace BallisticSimulator.Core
                 _bulletController?.StepOneFrame();
         }
 
-        /// <summary>Notifica que una caja fue golpeada (llamado por TargetBox.ReceiveHit).</summary>
-        public void RegisterBoxHit() => _boxesHitThisShot++;
+        public event Action<int> OnBoxHitCountChanged;
+
+        /// <summary>Notifica que una caja fue golpeada (llamado por TargetBox.ReceiveHit o cadena de impactos).</summary>
+        public void RegisterBoxHit()
+        {
+            _boxesHitThisShot++;
+            OnBoxHitCountChanged?.Invoke(_boxesHitThisShot);
+        }
 
         /// <summary>Exporta la sesión actual a CSV y abre la carpeta.</summary>
         public string ExportSession()
@@ -194,7 +213,11 @@ namespace BallisticSimulator.Core
         }
 
         /// <summary>Establece el multiplicador de velocidad de simulación.</summary>
-        public void SetTimeScale(float scale) => _params.TimeScale = scale;
+        public void SetTimeScale(float scale) 
+        {
+            _params.TimeScale = scale;
+            if (!_batchMode) Time.timeScale = scale;
+        }
 
         /// <summary>
         /// Aplica un preset de munición completo al Model.
@@ -215,17 +238,32 @@ namespace BallisticSimulator.Core
 
         // ── Batch Testing ─────────────────────────────────────────────────────────
 
+        private Coroutine _batchCoroutine;
+
+        public void StartBatchTest(
+            float angleMin, float angleMax, float angleStep,
+            float velMin,   float velMax,   float velStep,
+            Action<int, int> onProgress = null)
+        {
+            if (_batchCoroutine != null) StopCoroutine(_batchCoroutine);
+            _batchCoroutine = StartCoroutine(RunBatch(angleMin, angleMax, angleStep, velMin, velMax, velStep, onProgress));
+        }
+
         /// <summary>
         /// Lanza un batch test iterando sobre rangos de ángulo y velocidad.
-        /// Llamado desde SidePanelUI via coroutine.
+        /// Llamado desde StartBatchTest via coroutine.
         /// </summary>
-        public IEnumerator RunBatch(
+        private IEnumerator RunBatch(
             float angleMin, float angleMax, float angleStep,
             float velMin,   float velMax,   float velStep,
             Action<int, int> onProgress = null)
         {
             _batchMode = true;
             GameStateManager.Instance.SetState(GameStateManager.SimState.BatchRunning);
+
+            // Acelerar el tiempo masivamente para que el batch termine rápido
+            float originalTimeScale = Time.timeScale;
+            Time.timeScale = 20f;
 
             int total = 0;
             for (float a = angleMin; a <= angleMax + 0.001f; a += Mathf.Max(0.1f, angleStep))
@@ -238,8 +276,6 @@ namespace BallisticSimulator.Core
             {
                 for (float vel = velMin; vel <= velMax + 0.001f; vel += Mathf.Max(1f, velStep))
                 {
-                    // En batch se mutan _params directamente (no via setters,
-                    // para evitar el RefreshPreview innecesario en cada iteración)
                     _params.AngleDegrees    = angle;
                     _params.InitialVelocity = vel;
 
@@ -257,9 +293,20 @@ namespace BallisticSimulator.Core
             }
 
             _batchMode = false;
-            ExportSession();
+            Time.timeScale = originalTimeScale; // Restaurar el tiempo normal
+
+            try 
+            {
+                ExportSession();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[Sim] Error al exportar lote: {ex.Message}");
+            }
+            
             if (GameStateManager.Instance != null)
                 GameStateManager.Instance.SetState(GameStateManager.SimState.Setup);
+                
             _trajectoryPreview?.Show();
             RefreshPreview();
         }
@@ -267,7 +314,7 @@ namespace BallisticSimulator.Core
         // ── Callbacks de la bala ──────────────────────────────────────────────────
         private void HandleLanded(Vector3 pos, float time)
         {
-            FinalizeShot(pos, time, hit: false);
+            FinalizeShot(pos, time, hit: false, 0f, 0f);
             _batchShotComplete = true;
 
             if (_batchMode)
@@ -277,12 +324,12 @@ namespace BallisticSimulator.Core
             }
             else
             {
-                _pipCamera?.Deactivate();
-                ReadyForNextShot();
+                // La bala queda en el suelo y la cámara PiP sigue activa
+                // hasta que el usuario resetea.
             }
         }
 
-        private void HandleHit(Vector3 pos, float time, GameObject target)
+        private void HandleHit(Vector3 pos, float time, GameObject target, float relVel, float impulse)
         {
             var box = target.GetComponent<TargetBox>();
             if (box != null)
@@ -295,7 +342,15 @@ namespace BallisticSimulator.Core
                 box.ReceiveHit(pos, dir, kineticEnergy * 0.02f);
             }
 
-            FinalizeShot(pos, time, hit: true);
+            StartCoroutine(WaitAndFinalizeHit(pos, time, relVel, impulse));
+        }
+
+        private IEnumerator WaitAndFinalizeHit(Vector3 pos, float time, float relVel, float impulse)
+        {
+            // Esperar el tiempo configurado para dejar que las físicas actúen y la estructura caiga
+            yield return new WaitForSeconds(_params.PostImpactWaitSeconds);
+
+            FinalizeShot(pos, time, hit: true, relVel, impulse);
             _batchShotComplete = true;
 
             if (_batchMode)
@@ -305,8 +360,10 @@ namespace BallisticSimulator.Core
             }
             else
             {
-                _pipCamera?.Deactivate();
-                ReadyForNextShot();
+                // En modo manual, no desactivamos la cámara PiP ni la bala, 
+                // ni volvemos al estado Setup automáticamente.
+                // Permitimos que el motor físico siga mostrando las cajas volando
+                // y la bala rebotando hasta que el usuario decida reiniciar.
             }
         }
 
@@ -339,35 +396,44 @@ namespace BallisticSimulator.Core
             _bulletController.AngleDegrees    = _params.AngleDegrees;
             _bulletController.InitialVelocity = _params.InitialVelocity;
             _bulletController.BulletRadiusMm  = _params.BulletRadiusMm;
+            _bulletController.BulletMassG     = _params.BulletMassG; // <-- IMPORTANTE: Pasar la masa
             _bulletController.Gravity         = _params.Gravity;
+            
+            // Mover la bala ANTES de encenderla garantiza que el TrailRenderer no dibuje desde (0,0,0)
+            _bulletController.transform.position = _muzzleTransform.position;
             _bulletController.gameObject.SetActive(true);
+            
             _bulletController.Launch(0f);
 
-            if (!_batchMode)
-                _pipCamera?.Activate(_bulletController.transform);
+            _pipCamera?.Activate(_bulletController.transform);
 
             _trajectoryPreview?.Hide();
-            if (GameStateManager.Instance != null)
+            if (GameStateManager.Instance != null && !_batchMode)
                 GameStateManager.Instance.SetState(GameStateManager.SimState.Firing);
         }
 
-        private void FinalizeShot(Vector3 impactPos, float time, bool hit)
+        private void FinalizeShot(Vector3 impactPos, float time, bool hit, float relVel, float impulse)
         {
             if (_currentShot == null) return;
 
             _currentShot.ImpactHit         = hit;
             _currentShot.ImpactX           = impactPos.x;
-            _currentShot.ImpactY           = impactPos.y;
+            _currentShot.ImpactY           = impactPos.y - (_muzzleTransform != null ? _muzzleTransform.position.y : 0f); // Relativo al cañón (Y=0)
             _currentShot.ImpactZ           = impactPos.z;
             _currentShot.FlightTimeSeconds = time;
-            _currentShot.MaxHeightM        = _bulletController?.MaxHeightReached ?? 0f;
+            _currentShot.MaxHeightM        = _bulletController?.MaxHeightReached ?? 0f; // MaxHeight ya era relativo al Origin
             _currentShot.BoxesHit          = _boxesHitThisShot;
+            _currentShot.RelativeVelocity  = relVel;
+            _currentShot.CollisionImpulse  = impulse;
             _currentShot.Timestamp         = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
             if (_muzzleTransform != null)
-                _currentShot.RangeM = Vector3.Distance(
-                    new Vector3(_muzzleTransform.position.x, 0f, _muzzleTransform.position.z),
-                    new Vector3(impactPos.x, 0f, impactPos.z));
+            {
+                // Rango horizontal exacto (ignorando la diferencia de altura para la fórmula base de alcance)
+                _currentShot.RangeM = Vector2.Distance(
+                    new Vector2(_muzzleTransform.position.x, _muzzleTransform.position.z),
+                    new Vector2(impactPos.x, impactPos.z));
+            }
 
             _session.AddShot(_currentShot);
             DatabaseManager.Instance?.InsertShot(_currentShot);
@@ -375,7 +441,7 @@ namespace BallisticSimulator.Core
 
             Debug.Log($"[Sim] Disparo #{_currentShot.ShotId} | " +
                       $"Impacto={hit} | Rango={_currentShot.RangeM:F1}m | " +
-                      $"AltMax={_currentShot.MaxHeightM:F1}m | T={time:F2}s");
+                      $"AltMax={_currentShot.MaxHeightM:F1}m | T={time:F2}s | VelRel={relVel:F1}m/s | Impulso={impulse:F1}Ns");
         }
 
         private ShotData BuildShotData()

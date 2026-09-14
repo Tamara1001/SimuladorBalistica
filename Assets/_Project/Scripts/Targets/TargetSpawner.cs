@@ -10,13 +10,13 @@ namespace BallisticSimulator.Targets
     [System.Serializable]
     public class TargetGridConfig
     {
-        [Range(0, 5)] public int   Rows     = 2;
-        [Range(0, 5)] public int   Columns  = 3;
-        [Range(1, 5)] public int   Depth    = 2;  // capas en profundidad (eje X)
-        public float BoxSize     = 1f;    // metros (lado del cubo)
-        public float BoxMass     = 20f;   // kg
+        [Range(0, 10)] public int   Rows     = 5;
+        [Range(0, 10)] public int   Columns  = 5;
+        [Range(1, 5)]  public int   Depth    = 2;  // capas en profundidad (eje X)
+        public float BoxSize     = 0.4f;  // metros (lado del cubo, 40cm)
+        public float BoxMass     = 1.5f;  // kg (más livianas)
         public float Distance    = 35f;   // metros desde el origen (arma)
-        public float Spacing     = 0.1f;  // espacio entre cajas (metros)
+        public float Spacing     = 0.0f; // cajas perfectamente apoyadas unas sobre otras
 
         /// <summary>Total de cajas = Rows × Columns × Depth (0 si cualquiera es 0).</summary>
         public int TotalBoxes => Rows * Columns * Depth;
@@ -44,8 +44,8 @@ namespace BallisticSimulator.Targets
         public TargetGridConfig Config => _config;
 
         // ── Unity ────────────────────────────────────────────────────────────────
-        private void Start() => SpawnGrid();
-
+        // El spawneo inicial ahora es manejado 100% por la UI (SidePanelUI) al arrancar, 
+        // evitando el doble spawneo que causaba la explosión física.
         // ── API pública ───────────────────────────────────────────────────────────
 
         /// <summary>
@@ -59,11 +59,11 @@ namespace BallisticSimulator.Targets
             SpawnGrid();
         }
 
-        /// <summary>Resetea todas las cajas a su posición original sin destruirlas.</summary>
+        /// <summary>Resetea todas las cajas a su posición original regenerando la grilla y sus joints.</summary>
         public void ResetTargets()
         {
-            foreach (var box in _activeBoxes)
-                if (box != null) box.ResetToOrigin();
+            DestroyGrid();
+            SpawnGrid();
         }
 
         // ── Spawn ─────────────────────────────────────────────────────────────────
@@ -92,6 +92,8 @@ namespace BallisticSimulator.Targets
                 muzzlePos.z - gridWidth * 0.5f
             );
 
+            TargetBox[,,] gridArray = new TargetBox[_config.Rows, _config.Columns, _config.Depth];
+
             for (int row = 0; row < _config.Rows; row++)
             {
                 for (int col = 0; col < _config.Columns; col++)
@@ -109,7 +111,51 @@ namespace BallisticSimulator.Targets
                         box.SizeM      = _config.BoxSize;
                         box.ApplyConfig();
 
+                        gridArray[row, col, d] = box;
                         _activeBoxes.Add(box);
+                    }
+                }
+            }
+
+            // Fuerza de ruptura infinita en reposo: No colapsarán JAMÁS por peso o micro-fuerzas de Unity.
+            // La rotura se gestionará dinámicamente mediante colisiones por script (TargetBox.OnCollisionEnter).
+            float breakForce = Mathf.Infinity;
+
+            for (int row = 0; row < _config.Rows; row++)
+            {
+                for (int col = 0; col < _config.Columns; col++)
+                {
+                    for (int d = 0; d < _config.Depth; d++)
+                    {
+                        var rb = gridArray[row, col, d].GetComponent<Rigidbody>();
+                        // Reducir fricción/drag de las cajas para que vuelen más lejos al ser golpeadas
+                        rb.linearDamping = 0.05f; 
+                        rb.angularDamping = 0.05f;
+
+                        // Conectar con la caja inferior
+                        if (row > 0)
+                        {
+                            var joint = rb.gameObject.AddComponent<FixedJoint>();
+                            joint.connectedBody = gridArray[row - 1, col, d].GetComponent<Rigidbody>();
+                            joint.breakForce = breakForce;
+                            joint.breakTorque = breakForce;
+                        }
+                        // Conectar con la caja de la izquierda
+                        if (col > 0)
+                        {
+                            var joint = rb.gameObject.AddComponent<FixedJoint>();
+                            joint.connectedBody = gridArray[row, col - 1, d].GetComponent<Rigidbody>();
+                            joint.breakForce = breakForce;
+                            joint.breakTorque = breakForce;
+                        }
+                        // Conectar con la caja de atrás
+                        if (d > 0)
+                        {
+                            var joint = rb.gameObject.AddComponent<FixedJoint>();
+                            joint.connectedBody = gridArray[row, col, d - 1].GetComponent<Rigidbody>();
+                            joint.breakForce = breakForce;
+                            joint.breakTorque = breakForce;
+                        }
                     }
                 }
             }
