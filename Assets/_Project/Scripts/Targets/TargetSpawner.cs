@@ -16,7 +16,10 @@ namespace BallisticSimulator.Targets
         public float BoxSize     = 0.4f;  // metros (lado del cubo, 40cm)
         public float BoxMass     = 1.5f;  // kg (más livianas)
         public float Distance    = 35f;   // metros desde el origen (arma)
-        public float Spacing     = 0.0f; // cajas perfectamente apoyadas unas sobre otras
+        
+        // Optimización física: Dejar un micro-espacio evita que miles de cajas estén rozándose 
+        // e intentando resolver penetraciones exactas, lo que asfixia la CPU.
+        public float Spacing     = 0.01f; 
 
         /// <summary>Total de cajas = Rows × Columns × Depth (0 si cualquiera es 0).</summary>
         public int TotalBoxes => Rows * Columns * Depth;
@@ -131,30 +134,40 @@ namespace BallisticSimulator.Targets
                         // Reducir fricción/drag de las cajas para que vuelen más lejos al ser golpeadas
                         rb.linearDamping = 0.05f; 
                         rb.angularDamping = 0.05f;
+                        
+                        // Optimización: Limitar la velocidad de despenetración
+                        // Evita que cajas ligeramente solapadas se empujen violentamente, ahorrando cálculos pesados.
+                        rb.maxDepenetrationVelocity = 2.0f;
 
                         // Conectar con la caja inferior
                         if (row > 0)
                         {
                             var joint = rb.gameObject.AddComponent<FixedJoint>();
-                            joint.connectedBody = gridArray[row - 1, col, d].GetComponent<Rigidbody>();
+                            var targetRb = gridArray[row - 1, col, d].GetComponent<Rigidbody>();
+                            joint.connectedBody = targetRb;
                             joint.breakForce = breakForce;
                             joint.breakTorque = breakForce;
+                            targetRb.GetComponent<TargetBox>().RegisterIncomingJoint(joint);
                         }
                         // Conectar con la caja de la izquierda
                         if (col > 0)
                         {
                             var joint = rb.gameObject.AddComponent<FixedJoint>();
-                            joint.connectedBody = gridArray[row, col - 1, d].GetComponent<Rigidbody>();
+                            var targetRb = gridArray[row, col - 1, d].GetComponent<Rigidbody>();
+                            joint.connectedBody = targetRb;
                             joint.breakForce = breakForce;
                             joint.breakTorque = breakForce;
+                            targetRb.GetComponent<TargetBox>().RegisterIncomingJoint(joint);
                         }
                         // Conectar con la caja de atrás
                         if (d > 0)
                         {
                             var joint = rb.gameObject.AddComponent<FixedJoint>();
-                            joint.connectedBody = gridArray[row, col, d - 1].GetComponent<Rigidbody>();
+                            var targetRb = gridArray[row, col, d - 1].GetComponent<Rigidbody>();
+                            joint.connectedBody = targetRb;
                             joint.breakForce = breakForce;
                             joint.breakTorque = breakForce;
+                            targetRb.GetComponent<TargetBox>().RegisterIncomingJoint(joint);
                         }
                     }
                 }

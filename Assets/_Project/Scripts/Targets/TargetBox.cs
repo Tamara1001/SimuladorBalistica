@@ -20,6 +20,9 @@ namespace BallisticSimulator.Targets
         private Quaternion _originRotation;
         private Rigidbody  _rb;
         private bool       _wasHit;
+        
+        // Caché de uniones entrantes para evitar FindObjectsByType O(N^2)
+        private readonly System.Collections.Generic.List<Joint> _incomingJoints = new System.Collections.Generic.List<Joint>();
 
         private void Awake()
         {
@@ -44,9 +47,15 @@ namespace BallisticSimulator.Targets
         {
             _rb.mass             = MassKg;
             _rb.interpolation    = RigidbodyInterpolation.Interpolate;
-            _rb.collisionDetectionMode = CollisionDetectionMode.Continuous; // Ayuda a que la bala no las atraviese
+            _rb.collisionDetectionMode = CollisionDetectionMode.Discrete; // Optimización: Continuous mata la CPU con miles de cajas
             transform.localScale = Vector3.one * SizeM;
             _originPosition      = transform.position;
+        }
+
+        public void RegisterIncomingJoint(Joint joint)
+        {
+            if (joint != null)
+                _incomingJoints.Add(joint);
         }
 
         /// <summary>
@@ -58,13 +67,12 @@ namespace BallisticSimulator.Targets
         public void ReceiveHit(Vector3 hitPoint, Vector3 direction, float impactForce)
         {
             if (_wasHit) return;
-            _wasHit = true;
-
-            // Notificar al SimulationManager
-            Core.SimulationManager.Instance?.RegisterBoxHit();
 
             // Romper todas las uniones de esta caja y las que apunten a ella
             BreakAllJoints();
+
+            // Notificar al SimulationManager (después de BreakAllJoints que pone wasHit en true)
+            Core.SimulationManager.Instance?.RegisterBoxHit();
 
             // Aplicar impulso en la dirección de la bala
             _rb.AddForceAtPosition(
@@ -87,6 +95,9 @@ namespace BallisticSimulator.Targets
 
         private void OnCollisionEnter(Collision collision)
         {
+            // Optimización: Si ya rompió sus uniones, ignorar todo roce futuro
+            if (_wasHit) return;
+
             // 1. Ignorar roturas durante la fase de Setup (antes de disparar)
             if (Core.GameStateManager.Instance != null && Core.GameStateManager.Instance.IsSetup) return;
 
@@ -97,37 +108,31 @@ namespace BallisticSimulator.Targets
             if (collision.gameObject.CompareTag("Bullet") || collision.relativeVelocity.sqrMagnitude > 4.0f)
             {
                 BreakAllJoints();
-                if (!_wasHit)
-                {
-                    _wasHit = true;
-                    Core.SimulationManager.Instance?.RegisterBoxHit();
-                }
+                Core.SimulationManager.Instance?.RegisterBoxHit();
             }
         }
 
         /// <summary>
         /// Destruye de forma bidireccional todas las articulaciones asociadas a esta caja.
+        /// Optimización O(1): Utiliza referencias directas en lugar de escanear la escena.
         /// </summary>
         public void BreakAllJoints()
         {
-            // 1. Destruir joints montados en este GameObject
+            if (_wasHit) return;
+            _wasHit = true;
+
+            // 1. Destruir joints montados en este GameObject (salientes)
             foreach (var joint in GetComponents<Joint>())
             {
-                Destroy(joint);
+                if (joint != null) Destroy(joint);
             }
 
-            // 2. Destruir joints en otras cajas que estén conectadas a esta
-            if (_rb != null)
+            // 2. Destruir joints en otras cajas que estén conectadas a esta (entrantes)
+            foreach (var joint in _incomingJoints)
             {
-                var allJoints = FindObjectsByType<Joint>(FindObjectsSortMode.None);
-                foreach (var j in allJoints)
-                {
-                    if (j.connectedBody == _rb)
-                    {
-                        Destroy(j);
-                    }
-                }
+                if (joint != null) Destroy(joint);
             }
+            _incomingJoints.Clear();
         }
 
         /// <summary>Resetea la caja a su posición y rotación original, sin velocidad.</summary>
@@ -137,6 +142,7 @@ namespace BallisticSimulator.Targets
             _rb.linearVelocity  = Vector3.zero;
             _rb.angularVelocity = Vector3.zero;
             _wasHit             = false;
+            _incomingJoints.Clear();
             gameObject.SetActive(true);
         }
     }
