@@ -49,4 +49,5 @@ El proyecto cumple estricta y detalladamente con el **100% de la consigna evalua
 - **Persistencia Extra:** Soporte adicional interno con base de datos SQLite para evitar pérdida de datos del testeo automático en caso de cierres abruptos.
 
 ---
-*(Nota: Si deseas construir la escena desde cero, el proyecto trae un instalador propio. Crea una escena vacía y haz clic en `Tools > Ballistic Simulator > 🚀 Setup Completo`)*
+
+Video demostrativo: https://youtu.be/swQaoImI_dY
