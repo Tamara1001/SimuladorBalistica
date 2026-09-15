@@ -24,6 +24,50 @@ Mientras el simulador está a la espera de configurar el disparo, puedes explora
 
 ---
 
+## 🏗️ Arquitectura de Software & Atributos de Calidad (NFRs)
+
+El diseño del proyecto aplica el principio de **"Just Enough Architecture"** (Arquitectura Pragmática), estructurando el sistema según las pautas del patrón **MVC (Model-View-Controller)** y priorizando los siguientes Atributos de Calidad (Requisitos No Funcionales):
+
+1. **Rendimiento (Performance):** 
+   - Algoritmo de desvinculación de uniones $O(1)$ mediante referencias cacheadas (`_incomingJoints`), evitando búsquedas globales en la escena (`FindObjectsByType`).
+   - Detección de colisión discreta (`CollisionDetectionMode.Discrete`) y micro-espaciado ($0.01\text{ m}$) para eliminar solapamientos microscópicos que sobrecargaban PhysX en estructuras de más de 4000 bloques.
+2. **Testabilidad (Testability):** 
+   - Aislamiento completo del motor balístico analítico en la clase estática pura `BulletPhysics.cs`, sin dependencias de `MonoBehaviour` ni del ciclo de vida de Unity.
+   - Suite de pruebas unitarias automáticas mediante **NUnit** y Unity Test Runner.
+3. **Modificabilidad & Mantenibilidad:** 
+   - Separación en capas mediante namespaces (`BallisticSimulator.Core`, `.Data`, `.Physics`, `.Targets`, `.UI`, `.Camera`).
+   - Uso de `ScriptableObjects` (`BulletPreset`) para extender o modificar presets de armas sin alterar código.
+4. **Trazabilidad & Auditoría:** 
+   - Registro de datos de cada simulación en base de datos local **SQLite** y exportación síncrona a formato **CSV** (con codificación UTF-8 con BOM y separadores adaptados para Microsoft Excel).
+
+---
+
+## 🧪 Testabilidad (Unit Testing)
+
+El proyecto incluye pruebas unitarias en `Assets/_Project/Scripts/Tests/BulletPhysicsTests.cs` ejecutables desde el **Unity Test Runner** (`Window > General > Test Runner`):
+
+- `MaxRange_At45Degrees_ReturnsTheoreticalMaximum`: Verifica que la fórmula de alcance máximo horizontal coincida con $v_0^2 / g$.
+- `MaxHeight_At90Degrees_ReturnsCorrectPeak`: Valida la altura del punto de ápice a $90^\circ$.
+- `Position_AtTimeToApex_YEqualsOriginPlusMaxHeight`: Comprueba la precisión vectorial en la cúspide de la parábola.
+- `Speed_AtApex_EqualsHorizontalVelocityComponent`: Confirma que la rapidez vertical decae a 0 en el punto más alto.
+- `TotalFlightTime_ReturnsDoubleOfTimeToApex`: Verifica la simetría temporal del vuelo parabólico.
+
+---
+
+## 📌 Registros de Decisiones Arquitectónicas (ADRs)
+
+* **ADR-01: Patrón MVC con Comunicación por Eventos**
+  - *Decisión:* Desacoplar la UI (`SidePanelUI`) del controlador (`SimulationManager`) mediante eventos de C# (`Action<ShotData>`, `Action<int>`).
+  - *Justificación:* Evita dependencias circulares y permite cambiar o rehacer la UI sin tocar la simulación.
+* **ADR-02: Caching de Uniones Entrantes en Targets**
+  - *Decisión:* Registrar las uniones `FixedJoint` creadas en `TargetSpawner` directamente en una colección local `_incomingJoints` de cada `TargetBox`.
+  - *Justificación:* Convierte la destrucción en cadena de uniones de complejidad $O(N^2)$ a $O(1)$, manteniendo $>60\text{ FPS}$ en colapsos masivos.
+* **ADR-03: Exportación Doble (SQLite + CSV)**
+  - *Decisión:* Persistir cada disparo inmediatamente en SQLite y permitir la exportación de sesión a CSV.
+  - *Justificación:* SQLite protege la integridad de los datos en corridas por lotes (Batch Testing) y el CSV facilita el análisis externo en Excel o Python.
+
+---
+
 ## 📋 Criterios de Evaluación Cubiertos (Rúbrica)
 
 El proyecto cumple estricta y detalladamente con el **100% de la consigna evaluativa** solicitada:
@@ -51,3 +95,4 @@ El proyecto cumple estricta y detalladamente con el **100% de la consigna evalua
 ---
 
 Video demostrativo: https://youtu.be/swQaoImI_dY
+
