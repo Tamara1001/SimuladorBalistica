@@ -48,8 +48,17 @@ namespace BallisticSimulator.Targets
             _rb.mass             = MassKg;
             _rb.interpolation    = RigidbodyInterpolation.Interpolate;
             _rb.collisionDetectionMode = CollisionDetectionMode.Discrete; // Optimización: Continuous mata la CPU con miles de cajas
+            _rb.constraints      = RigidbodyConstraints.FreezeAll; // Estáticas hasta que algo las golpee
             transform.localScale = Vector3.one * SizeM;
             _originPosition      = transform.position;
+        }
+
+        public void Unfreeze()
+        {
+            if (_rb.constraints != RigidbodyConstraints.None)
+            {
+                _rb.constraints = RigidbodyConstraints.None;
+            }
         }
 
         public void RegisterIncomingJoint(Joint joint)
@@ -141,6 +150,7 @@ namespace BallisticSimulator.Targets
             transform.SetPositionAndRotation(_originPosition, _originRotation);
             _rb.linearVelocity  = Vector3.zero;
             _rb.angularVelocity = Vector3.zero;
+            _rb.constraints     = RigidbodyConstraints.FreezeAll;
             _wasHit             = false;
             _incomingJoints.Clear();
             gameObject.SetActive(true);

@@ -435,6 +435,46 @@
     color: black;
 }
 
+/* ── Cloud Persistence Buttons ───────────────────────────────────────────── */
+.btn-cloud {
+    background-color: transparent;
+    border-color: #00aaff;
+    border-width: 1px;
+    color: #00aaff;
+    font-size: 11px;
+    -unity-font-style: bold;
+    padding: 6px 10px;
+    letter-spacing: 1px;
+    border-radius: 0;
+    flex-grow: 1;
+    margin-right: 6px;
+}
+
+.btn-cloud:hover {
+    background-color: rgba(0, 170, 255, 0.15);
+    border-color: #44ccff;
+    color: #44ccff;
+}
+
+.btn-cloud:active {
+    background-color: #00aaff;
+    color: black;
+}
+
+.btn-cloud:disabled {
+    border-color: #004466;
+    color: #004466;
+}
+
+.cloud-status-label {
+    font-size: 10px;
+    color: #007799;
+    letter-spacing: 1px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    padding: 2px 0;
+}
+
 /* ── Picture-in-Picture Camera Panel ────────────────────────────────────── */
 .pip-panel {
     position: absolute;

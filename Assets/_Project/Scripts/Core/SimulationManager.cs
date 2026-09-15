@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using BallisticSimulator.Camera;
 using BallisticSimulator.Data;
+using BallisticSimulator.Data.Persistence;
 using BallisticSimulator.Physics;
 using BallisticSimulator.Targets;
 using UnityEngine;
@@ -32,6 +33,9 @@ namespace BallisticSimulator.Core
 
         [Header("Cámara PiP")]
         [SerializeField] private BulletPiPCamera _pipCamera;
+
+        [Header("Persistencia en Nube (opcional)")]
+        [SerializeField] private SimulationRepository _repository;
 
         // ── MODEL: parámetros activos de la simulación ────────────────────────────
         // Accesible desde el Inspector para depuración; solo el Controller lo muta.
@@ -171,6 +175,10 @@ namespace BallisticSimulator.Core
         /// <summary>Notifica que una caja fue golpeada (llamado por TargetBox.ReceiveHit o cadena de impactos).</summary>
         public void RegisterBoxHit()
         {
+            if (_boxesHitThisShot == 0)
+            {
+                _targetSpawner?.UnfreezeAll();
+            }
             _boxesHitThisShot++;
             OnBoxHitCountChanged?.Invoke(_boxesHitThisShot);
         }
@@ -181,6 +189,103 @@ namespace BallisticSimulator.Core
             string path = CSVExporter.Export(_session);
             if (path != null) CSVExporter.OpenExportFolder();
             return path;
+        }
+
+        // ── Persistencia en Nube ───────────────────────────────────────────────────
+
+        /// <summary>
+        /// Se dispara al terminar una operación de nube.
+        /// bool = true si fue exitosa, false si hubo error.
+        /// </summary>
+        public event Action<bool> OnCloudOperationCompleted;
+
+        /// <summary>
+        /// Guarda los parámetros actuales y el historial de la sesión en Cloud Save.
+        /// async void es intencional: es llamado desde un botón de UI (callback de Unity).
+        /// </summary>
+        public async void SaveToCloud()
+        {
+            if (_repository == null)
+            {
+                Debug.LogWarning("[Sim] SaveToCloud: no hay Repository asignado en el Inspector.");
+                OnCloudOperationCompleted?.Invoke(false);
+                return;
+            }
+
+            try
+            {
+                await _repository.SaveParametersAsync(_params);
+                await _repository.SaveShotHistoryAsync(_session.Shots);
+                Debug.Log("[Sim] Guardado en nube completado.");
+                OnCloudOperationCompleted?.Invoke(true);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[Sim] Error al guardar en nube.");
+                Debug.LogException(ex);
+                OnCloudOperationCompleted?.Invoke(false);
+            }
+        }
+
+        /// <summary>
+        /// Carga los parámetros guardados desde Cloud Save y los aplica al Model.
+        /// Dispara OnCloudOperationCompleted para que la View actualice sus controles.
+        /// async void es intencional: es llamado desde un botón de UI (callback de Unity).
+        /// </summary>
+        public async void LoadFromCloud()
+        {
+            if (_repository == null)
+            {
+                Debug.LogWarning("[Sim] LoadFromCloud: no hay Repository asignado en el Inspector.");
+                OnCloudOperationCompleted?.Invoke(false);
+                return;
+            }
+
+            try
+            {
+                BallisticParameters loaded = await _repository.LoadParametersAsync();
+
+                if (loaded == null)
+                {
+                    Debug.Log("[Sim] LoadFromCloud: no hay datos en la nube todavía.");
+                    OnCloudOperationCompleted?.Invoke(false);
+                    return;
+                }
+
+                // Aplicar al Model usando los setters existentes (mantiene RefreshPreview y notificaciones)
+                SetAngle(loaded.AngleDegrees);
+                SetVelocity(loaded.InitialVelocity);
+                SetMass(loaded.BulletMassG);
+                SetRadius(loaded.BulletRadiusMm);
+                SetGravity(loaded.Gravity);
+                SetTimeScale(loaded.TimeScale);
+                SetPresetName(loaded.PresetName);
+
+                Debug.Log("[Sim] Parámetros cargados desde nube y aplicados al Model.");
+                OnCloudOperationCompleted?.Invoke(true);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[Sim] Error al cargar desde nube.");
+                Debug.LogException(ex);
+                OnCloudOperationCompleted?.Invoke(false);
+            }
+        }
+
+        /// <summary>
+        /// Recupera el historial guardado en la nube.
+        /// </summary>
+        public async System.Threading.Tasks.Task<System.Collections.Generic.List<ShotData>> LoadHistoryFromCloudAsync()
+        {
+            if (_repository == null) return null;
+            try
+            {
+                return await _repository.LoadShotHistoryAsync();
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         // ── Setters del Model (la View llama estos, nunca escribe _params directo) ─
@@ -442,6 +547,12 @@ namespace BallisticSimulator.Core
             Debug.Log($"[Sim] Disparo #{_currentShot.ShotId} | " +
                       $"Impacto={hit} | Rango={_currentShot.RangeM:F1}m | " +
                       $"AltMax={_currentShot.MaxHeightM:F1}m | T={time:F2}s | VelRel={relVel:F1}m/s | Impulso={impulse:F1}Ns");
+
+            // Requerimiento: "Al finalizar cada disparo, guardar en UGS"
+            if (!_batchMode && _repository != null)
+            {
+                _ = _repository.SaveShotHistoryAsync(_session.Shots);
+            }
         }
 
         private ShotData BuildShotData()

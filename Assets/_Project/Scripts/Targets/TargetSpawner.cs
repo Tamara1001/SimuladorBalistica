@@ -17,9 +17,9 @@ namespace BallisticSimulator.Targets
         public float BoxMass     = 1.5f;  // kg (más livianas)
         public float Distance    = 35f;   // metros desde el origen (arma)
         
-        // Optimización física: Dejar un micro-espacio evita que miles de cajas estén rozándose 
-        // e intentando resolver penetraciones exactas, lo que asfixia la CPU.
-        public float Spacing     = 0.01f; 
+        // Sin juntas fijas, las cajas pueden spawnearse rozándose (0f) sin explotar,
+        // ya que PhysX maneja pilas simples muchísimo mejor que mallas de joints hiper-conectadas.
+        public float Spacing     = 0.0f; 
 
         /// <summary>Total de cajas = Rows × Columns × Depth (0 si cualquiera es 0).</summary>
         public int TotalBoxes => Rows * Columns * Depth;
@@ -67,6 +67,15 @@ namespace BallisticSimulator.Targets
         {
             DestroyGrid();
             SpawnGrid();
+        }
+
+        /// <summary>Libera todas las cajas del estado congelado.</summary>
+        public void UnfreezeAll()
+        {
+            foreach (var box in _activeBoxes)
+            {
+                if (box != null) box.Unfreeze();
+            }
         }
 
         // ── Spawn ─────────────────────────────────────────────────────────────────
@@ -120,10 +129,6 @@ namespace BallisticSimulator.Targets
                 }
             }
 
-            // Fuerza de ruptura infinita en reposo: No colapsarán JAMÁS por peso o micro-fuerzas de Unity.
-            // La rotura se gestionará dinámicamente mediante colisiones por script (TargetBox.OnCollisionEnter).
-            float breakForce = Mathf.Infinity;
-
             for (int row = 0; row < _config.Rows; row++)
             {
                 for (int col = 0; col < _config.Columns; col++)
@@ -138,37 +143,6 @@ namespace BallisticSimulator.Targets
                         // Optimización: Limitar la velocidad de despenetración
                         // Evita que cajas ligeramente solapadas se empujen violentamente, ahorrando cálculos pesados.
                         rb.maxDepenetrationVelocity = 2.0f;
-
-                        // Conectar con la caja inferior
-                        if (row > 0)
-                        {
-                            var joint = rb.gameObject.AddComponent<FixedJoint>();
-                            var targetRb = gridArray[row - 1, col, d].GetComponent<Rigidbody>();
-                            joint.connectedBody = targetRb;
-                            joint.breakForce = breakForce;
-                            joint.breakTorque = breakForce;
-                            targetRb.GetComponent<TargetBox>().RegisterIncomingJoint(joint);
-                        }
-                        // Conectar con la caja de la izquierda
-                        if (col > 0)
-                        {
-                            var joint = rb.gameObject.AddComponent<FixedJoint>();
-                            var targetRb = gridArray[row, col - 1, d].GetComponent<Rigidbody>();
-                            joint.connectedBody = targetRb;
-                            joint.breakForce = breakForce;
-                            joint.breakTorque = breakForce;
-                            targetRb.GetComponent<TargetBox>().RegisterIncomingJoint(joint);
-                        }
-                        // Conectar con la caja de atrás
-                        if (d > 0)
-                        {
-                            var joint = rb.gameObject.AddComponent<FixedJoint>();
-                            var targetRb = gridArray[row, col, d - 1].GetComponent<Rigidbody>();
-                            joint.connectedBody = targetRb;
-                            joint.breakForce = breakForce;
-                            joint.breakTorque = breakForce;
-                            targetRb.GetComponent<TargetBox>().RegisterIncomingJoint(joint);
-                        }
                     }
                 }
             }

@@ -154,6 +154,95 @@ Transform:
   - {fileID: 1843854219}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &179930771
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 179930772}
+  - component: {fileID: 179930774}
+  - component: {fileID: 179930773}
+  m_Layer: 0
+  m_Name: CloudServices
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &179930772
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 179930771}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 181532414}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &179930773
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 179930771}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8b8f109e3832a34ab9cf7683dc8222e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BallisticSimulator.Data.Persistence.UgsSimulationRepository
+--- !u!114 &179930774
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 179930771}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f94350099fe6bcb4395c08f830d76ca2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BallisticSimulator.Data.Persistence.UgsInitializer
+--- !u!1 &181532413
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 181532414}
+  m_Layer: 0
+  m_Name: '[SERVICES]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &181532414
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 181532413}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 179930772}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &222726909
 GameObject:
   m_ObjectHideFlags: 0
@@ -869,6 +958,7 @@ MonoBehaviour:
   _muzzleTransform: {fileID: 362120429}
   _gunBaseTransform: {fileID: 1561031640}
   _pipCamera: {fileID: 1843854220}
+  _repository: {fileID: 179930773}
   _params:
     AngleDegrees: 10
     InitialVelocity: 45
@@ -877,6 +967,7 @@ MonoBehaviour:
     PresetName: 9mm Parabellum
     Gravity: 9.81
     TimeScale: 1
+    PostImpactWaitSeconds: 3
 --- !u!1 &820655118
 GameObject:
   m_ObjectHideFlags: 0
@@ -1150,8 +1241,6 @@ MonoBehaviour:
   _orbitSensitivity: 0.3
   _zoomSensitivity: 5
   _moveSpeed: 25
-  _minDistance: 5
-  _maxDistance: 120
 --- !u!1 &1145315940
 GameObject:
   m_ObjectHideFlags: 0
@@ -2718,3 +2807,4 @@ SceneRoots:
   - {fileID: 1863635401}
   - {fileID: 1946716092}
   - {fileID: 1577604320}
+  - {fileID: 181532414}

@@ -6,10 +6,11 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using BallisticSimulator.Core;
 using BallisticSimulator.Camera;
+using BallisticSimulator.Data;
+using BallisticSimulator.Data.Persistence;
 using BallisticSimulator.Physics;
 using BallisticSimulator.Targets;
 using BallisticSimulator.UI;
-using BallisticSimulator.Data;
 
 /// <summary>
 /// Herramienta de setup automático de escena para el Simulador Balístico 3D.
@@ -144,6 +145,7 @@ public static class BallisticSceneSetup
     {
         // ── Grupos organizadores ──────────────────────────────────────────────
         var grpManagers    = GetOrCreate("[MANAGERS]");
+        var grpServices    = GetOrCreate("[SERVICES]");
         var grpCameras     = GetOrCreate("[CAMERAS]");
         var grpEnvironment = GetOrCreate("[ENVIRONMENT]");
         var grpGun         = GetOrCreate("[GUN]");
@@ -161,6 +163,11 @@ public static class BallisticSceneSetup
 
         var dbGO = GetOrCreate("DatabaseManager", grpManagers.transform);
         GetOrAddComponent<DatabaseManager>(dbGO);
+
+        // ── SERVICES ─────────────────────────────────────────────────────────
+        var cloudGO = GetOrCreate("CloudServices", grpServices.transform);
+        GetOrAddComponent<UgsInitializer>(cloudGO);
+        GetOrAddComponent<UgsSimulationRepository>(cloudGO);
 
         // ── CAMERAS ───────────────────────────────────────────────────────────
         // ── CAMERAS ───────────────────────────────────────────────────────────
@@ -433,10 +440,11 @@ public static class BallisticSceneSetup
         var setupCamGO = FindRequired("SetupCamera");
         var freeCamGO  = FindRequired("FreeCamera");
         var muzzleGO   = FindRequired("Muzzle");
+        var cloudGO    = FindRequired("CloudServices");
 
         if (simGO == null || camMgrGO == null || spawnerGO == null ||
             uiGO  == null || trajGO   == null || bulletGO  == null ||
-            setupCamGO == null || freeCamGO == null || muzzleGO == null)
+            setupCamGO == null || freeCamGO == null || muzzleGO == null || cloudGO == null)
         {
             EditorUtility.DisplayDialog("Error — Setup Balístico",
                 "Faltan objetos en la escena.\n" +
@@ -451,6 +459,7 @@ public static class BallisticSceneSetup
         SetField(sim, "_trajectoryPreview", trajGO.GetComponent<TrajectoryPreview>());
         SetField(sim, "_targetSpawner",     spawnerGO.GetComponent<TargetSpawner>());
         SetField(sim, "_muzzleTransform",   muzzleGO.transform);
+        SetField(sim, "_repository",        cloudGO.GetComponent<UgsSimulationRepository>());
         SetField(sim, "_gunBaseTransform",  cannonPivotGO != null ? cannonPivotGO.transform : null);
 
         // ── CameraManager ─────────────────────────────────────────────────────
@@ -493,6 +502,20 @@ public static class BallisticSceneSetup
         }
         SetField(sidePanelUI, "_targetSpawner", spawner);
         uiSo.ApplyModifiedPropertiesWithoutUndo();
+
+        // ── Script Execution Order ────────────────────────────────────────────
+        foreach (var monoScript in MonoImporter.GetAllRuntimeMonoScripts())
+        {
+            if (monoScript.GetClass() == typeof(UgsInitializer))
+            {
+                if (MonoImporter.GetExecutionOrder(monoScript) != -100)
+                {
+                    MonoImporter.SetExecutionOrder(monoScript, -100);
+                    Debug.Log("[Setup] Script Execution Order de UgsInitializer ajustado a -100.");
+                }
+                break;
+            }
+        }
 
         MarkSceneDirty();
         Debug.Log("[Setup] ✓ Todas las referencias asignadas.");

@@ -2,6 +2,7 @@ using System.Collections;
 using BallisticSimulator.Camera;
 using BallisticSimulator.Core;
 using BallisticSimulator.Data;
+using BallisticSimulator.Data.Persistence;
 using BallisticSimulator.Targets;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -64,6 +65,17 @@ namespace BallisticSimulator.UI
         private Label _maxHeightLabel;
         private Label _flightTimeLabel;
 
+        // Nube
+        private Button _cloudSaveButton;
+        private Button _cloudLoadButton;
+        private Button _cloudHistoryButton;
+        private Label  _cloudStatusLabel;
+
+        // Historial
+        private VisualElement _historyPanel;
+        private Label         _historyContent;
+        private Button        _closeHistoryButton;
+
         // Batch
         private Foldout    _batchFoldout;
         private FloatField _batchAngleMin;
@@ -112,10 +124,13 @@ namespace BallisticSimulator.UI
             {
                 SimulationManager.Instance.OnShotCompleted -= OnShotCompleted;
                 SimulationManager.Instance.OnBoxHitCountChanged -= OnBoxHitCountChanged;
+                SimulationManager.Instance.OnCloudOperationCompleted -= OnCloudOperationCompleted;
             }
 
             if (GameStateManager.Instance != null)
                 GameStateManager.Instance.OnStateChanged.RemoveListener(OnStateChanged);
+
+            UgsInitializer.OnReady -= UpdateCloudStatusLabel;
         }
 
         private void OnBoxHitCountChanged(int count)
@@ -125,6 +140,101 @@ namespace BallisticSimulator.UI
             {
                 _statusLabel.text = $"IMPACTO!\nCalculando daños...\nCajas cayendo: {count}";
             }
+        }
+
+        // ── Handlers de Nube ──────────────────────────────────────────────────────
+
+        private void OnCloudSaveClicked()
+        {
+            if (!UgsInitializer.IsReady) return;
+            SetCloudButtonsEnabled(false);
+            if (_cloudStatusLabel != null) _cloudStatusLabel.text = "Guardando...";
+            SimulationManager.Instance?.SaveToCloud();
+        }
+
+        private void OnCloudLoadClicked()
+        {
+            if (!UgsInitializer.IsReady) return;
+            SetCloudButtonsEnabled(false);
+            if (_cloudStatusLabel != null) _cloudStatusLabel.text = "Cargando...";
+            SimulationManager.Instance?.LoadFromCloud();
+        }
+
+        private void OnCloudOperationCompleted(bool success)
+        {
+            SetCloudButtonsEnabled(true);
+
+            if (_cloudStatusLabel != null)
+                _cloudStatusLabel.text = success ? "✓ Operación exitosa" : "✗ Error de red";
+
+            // Si la carga fue exitosa, sincronizar sliders con el Model actualizado
+            if (success)
+            {
+                var p = SimulationManager.Instance?.Params;
+                if (p != null)
+                {
+                    SetSliderAndField(_angleSlider,     _angleField,     p.AngleDegrees);
+                    SetSliderAndField(_velocitySlider,  _velocityField,  p.InitialVelocity);
+                    SetSliderAndField(_massSlider,      _massField,      p.BulletMassG);
+                    SetSliderAndField(_radiusSlider,    _radiusField,    p.BulletRadiusMm);
+                    SetSliderAndField(_gravitySlider,   _gravityField,   p.Gravity);
+                    SetSliderAndField(_timeScaleSlider, _timeScaleField, p.TimeScale);
+                }
+            }
+        }
+
+        private void UpdateCloudStatusLabel(bool isReady)
+        {
+            if (_cloudStatusLabel != null)
+                _cloudStatusLabel.text = isReady
+                    ? $"● UGS conectado | ID: {UgsInitializer.PlayerId[..Mathf.Min(8, UgsInitializer.PlayerId.Length)]}..."
+                    : "○ Sin conexión a nube";
+
+            SetCloudButtonsEnabled(isReady);
+        }
+
+        private void SetCloudButtonsEnabled(bool enabled)
+        {
+            if (_cloudSaveButton != null) _cloudSaveButton.SetEnabled(enabled);
+            if (_cloudLoadButton != null) _cloudLoadButton.SetEnabled(enabled);
+            if (_cloudHistoryButton != null) _cloudHistoryButton.SetEnabled(enabled);
+        }
+
+        private async void ShowCloudHistory()
+        {
+            if (!UgsInitializer.IsReady || _historyPanel == null) return;
+            
+            _historyPanel.style.display = DisplayStyle.Flex;
+            _historyContent.text = "Cargando historial desde la nube...";
+
+            var history = await SimulationManager.Instance.LoadHistoryFromCloudAsync();
+
+            if (history == null || history.Count == 0)
+            {
+                _historyContent.text = "No hay resultados guardados en la nube.";
+            }
+            else
+            {
+                var sb = new System.Text.StringBuilder();
+                for (int i = history.Count - 1; i >= 0; i--) // Mostrar del más reciente al más antiguo
+                {
+                    var shot = history[i];
+                    string status = shot.ImpactHit ? "ACIERTO" : "FALLO";
+                    sb.AppendLine($"[Disparo #{shot.ShotId}] {shot.Timestamp}");
+                    sb.AppendLine($" - Arma: Ángulo={shot.AngleDegrees}°, Fuerza/Vel={shot.InitialVelocity}m/s, Masa={shot.BulletMassGrams}g");
+                    sb.AppendLine($" - Resultado: {status} | Distancia={shot.RangeM:F1}m");
+                    if (shot.ImpactHit)
+                        sb.AppendLine($" - Cajas afectadas: {shot.BoxesHit}");
+                    sb.AppendLine(new string('-', 40));
+                }
+                _historyContent.text = sb.ToString();
+            }
+        }
+
+        private void HideCloudHistory()
+        {
+            if (_historyPanel != null)
+                _historyPanel.style.display = DisplayStyle.None;
         }
 
         // ── Binding de elementos ──────────────────────────────────────────────────
@@ -188,6 +298,16 @@ namespace BallisticSimulator.UI
             _pipImage     = root.Q<UnityEngine.UIElements.Image>("pip-image");
             _pipInfoLabel = root.Q<Label>("pip-info");
 
+            // Nube e Historial
+            _cloudSaveButton    = root.Q<Button>("btn-cloud-save");
+            _cloudLoadButton    = root.Q<Button>("btn-cloud-load");
+            _cloudHistoryButton = root.Q<Button>("btn-cloud-history");
+            _cloudStatusLabel   = root.Q<Label>("lbl-cloud-status");
+
+            _historyPanel       = root.Q<VisualElement>("history-panel");
+            _historyContent     = root.Q<Label>("history-content");
+            _closeHistoryButton = root.Q<Button>("btn-close-history");
+
             // Evitar que Sliders, Botones y Desplegables roben el foco del teclado (WASD)
             root.Query<VisualElement>()
                 .Where(e => e is Slider || e is SliderInt || e is Button || e is Foldout || e is DropdownField)
@@ -242,6 +362,19 @@ namespace BallisticSimulator.UI
 
             // ── Batch ──
             _batchRunButton?.RegisterCallback<ClickEvent>(_ => StartBatch());
+
+            // ── Nube e Historial ──
+            _cloudSaveButton?.RegisterCallback<ClickEvent>(_ => OnCloudSaveClicked());
+            _cloudLoadButton?.RegisterCallback<ClickEvent>(_ => OnCloudLoadClicked());
+            _cloudHistoryButton?.RegisterCallback<ClickEvent>(_ => ShowCloudHistory());
+            _closeHistoryButton?.RegisterCallback<ClickEvent>(_ => HideCloudHistory());
+
+            if (SimulationManager.Instance != null)
+                SimulationManager.Instance.OnCloudOperationCompleted += OnCloudOperationCompleted;
+
+            // Verificar estado inicial de UGS y actualizar label
+            UpdateCloudStatusLabel(UgsInitializer.IsReady);
+            UgsInitializer.OnReady += UpdateCloudStatusLabel;
         }
 
         // ── Preset ───────────────────────────────────────────────────────────────

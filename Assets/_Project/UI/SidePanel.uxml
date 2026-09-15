@@ -102,6 +102,25 @@
                 <ui:Label name="lbl-maxheight"  text="ALT. MÁX: —" class="result-label"/>
                 <ui:Label name="lbl-flighttime" text="T. VUELO: —" class="result-label"/>
             </ui:VisualElement>
+
+            <ui:Label text="> NUBE: PERSISTENCIA" class="panel-heading" style="margin-top: 5px;"/>
+            <ui:VisualElement class="panel-content">
+                <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 6px;">
+                    <ui:Button name="btn-cloud-save" text="☁ GUARDAR CONFIG" class="btn-cloud"/>
+                    <ui:Button name="btn-cloud-load" text="☁ CARGAR CONFIG"  class="btn-cloud"/>
+                </ui:VisualElement>
+                <ui:Button name="btn-cloud-history" text="☁ VER HISTORIAL" class="btn-cloud" style="margin-bottom: 6px;"/>
+                <ui:Label name="lbl-cloud-status" text="Sin conexión a nube" class="cloud-status-label"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- HISTORIAL PANEL (Centro) -->
+        <ui:VisualElement name="history-panel" class="hud-panel" style="display: none; position: absolute; top: 15%; left: 25%; width: 50%; height: 70%; background-color: rgba(0, 15, 5, 0.95); border-color: #00ff41; border-width: 1px; padding: 10px;">
+            <ui:Label text="☁ HISTORIAL DE DISPAROS (UGS)" class="panel-heading"/>
+            <ui:ScrollView name="history-scroll" style="flex-grow: 1; margin: 10px 0; border-color: #004008; border-width: 1px; padding: 5px;">
+                <ui:Label name="history-content" text="Cargando..." style="color: #00ff41; font-size: 12px; white-space: normal;"/>
+            </ui:ScrollView>
+            <ui:Button name="btn-close-history" text="CERRAR" class="btn-secondary" style="align-self: center; width: 100px;"/>
         </ui:VisualElement>
 
         <!-- BOTTOM PANEL (ACCIONES Y PRUEBAS EN LOTE) -->
