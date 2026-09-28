@@ -548,10 +548,10 @@ namespace BallisticSimulator.Core
                       $"Impacto={hit} | Rango={_currentShot.RangeM:F1}m | " +
                       $"AltMax={_currentShot.MaxHeightM:F1}m | T={time:F2}s | VelRel={relVel:F1}m/s | Impulso={impulse:F1}Ns");
 
-            // Requerimiento: "Al finalizar cada disparo, guardar en UGS"
+            // Requerimiento de consigna: "Al finalizar cada disparo, guardar en UGS"
             if (!_batchMode && _repository != null)
             {
-                _ = _repository.SaveShotHistoryAsync(_session.Shots);
+                _ = _repository.AddToHistoryAsync(_currentShot);
             }
         }
 

@@ -212,21 +212,33 @@ namespace BallisticSimulator.UI
             if (history == null || history.Count == 0)
             {
                 _historyContent.text = "No hay resultados guardados en la nube.";
+                Debug.Log("[Historial UGS] No se encontraron simulaciones guardadas.");
             }
             else
             {
                 var sb = new System.Text.StringBuilder();
+                Debug.Log($"[Historial UGS] Simulaciones encontradas: {history.Count}");
+
                 for (int i = history.Count - 1; i >= 0; i--) // Mostrar del más reciente al más antiguo
                 {
                     var shot = history[i];
                     string status = shot.ImpactHit ? "ACIERTO" : "FALLO";
-                    sb.AppendLine($"[Disparo #{shot.ShotId}] {shot.Timestamp}");
-                    sb.AppendLine($" - Arma: Ángulo={shot.AngleDegrees}°, Fuerza/Vel={shot.InitialVelocity}m/s, Masa={shot.BulletMassGrams}g");
-                    sb.AppendLine($" - Resultado: {status} | Distancia={shot.RangeM:F1}m");
-                    if (shot.ImpactHit)
-                        sb.AppendLine($" - Cajas afectadas: {shot.BoxesHit}");
-                    sb.AppendLine(new string('-', 40));
+
+                    sb.AppendLine($"[REGISTRO #{shot.ShotId}] ── {shot.Timestamp}");
+                    sb.AppendLine($" • Ángulo:               {shot.AngleDegrees:F1}°");
+                    sb.AppendLine($" • Fuerza:               {shot.InitialVelocity:F1} m/s");
+                    sb.AppendLine($" • Masa proyectil:       {shot.BulletMassGrams:F1} g");
+                    sb.AppendLine($" • Resultado impacto:    {status} (Distancia: {shot.RangeM:F1} m)");
+                    sb.AppendLine($" • Objetos afectados:    {shot.BoxesHit}");
+                    sb.AppendLine(new string('─', 42));
+
+                    Debug.Log(
+                        $"[Registro #{shot.ShotId}] {shot.Timestamp} | " +
+                        $"Ángulo: {shot.AngleDegrees:F1}° | Fuerza: {shot.InitialVelocity:F1} m/s | Masa: {shot.BulletMassGrams:F1} g | " +
+                        $"Resultado: {status} | Distancia: {shot.RangeM:F1} m | Objetos: {shot.BoxesHit}"
+                    );
                 }
+
                 _historyContent.text = sb.ToString();
             }
         }

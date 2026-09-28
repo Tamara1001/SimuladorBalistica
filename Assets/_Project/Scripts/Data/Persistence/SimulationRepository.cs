@@ -33,14 +33,25 @@ namespace BallisticSimulator.Data.Persistence
         // ── Historial de disparos ─────────────────────────────────────────────────
 
         /// <summary>
-        /// Persiste el historial de disparos de la sesión actual.
+        /// Agrega un disparo individual al historial en la nube (clave simulation_{id}).
+        /// Cumple con la consigna de persistir de forma independiente al finalizar cada disparo.
+        /// </summary>
+        public abstract Task AddToHistoryAsync(ShotData shot);
+
+        /// <summary>
+        /// Persiste el historial de disparos de la sesión actual en bloque.
         /// </summary>
         public abstract Task SaveShotHistoryAsync(List<ShotData> shots);
 
         /// <summary>
-        /// Recupera el historial de disparos de la última sesión guardada.
+        /// Recupera el historial completo de disparos guardado en la nube.
         /// Devuelve una lista vacía si no existen datos previos.
         /// </summary>
         public abstract Task<List<ShotData>> LoadShotHistoryAsync();
+
+        /// <summary>
+        /// Alias de LoadShotHistoryAsync para concordancia con el contrato visto en Persistencia II.
+        /// </summary>
+        public virtual Task<List<ShotData>> LoadHistoryAsync() => LoadShotHistoryAsync();
     }
 }
