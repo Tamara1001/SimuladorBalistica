@@ -2,6 +2,15 @@
 
 Simulador balístico interactivo desarrollado en Unity. Permite configurar parámetros físicos en tiempo real, proyectar trayectorias analíticas, resolver la simulación física de proyectiles e impactos contra estructuras destructibles de cuerpos rígidos, y gestionar la persistencia tanto local como remota mediante Unity Gaming Services (UGS).
 
+> **Video de demostración:** https://youtu.be/swQaoImI_dY
+
+## De un vistazo
+- **Qué es:** un simulador balístico 3D interactivo hecho en Unity, con física analítica y simulada, estructuras destructibles y persistencia en la nube.
+- **Alcance:** 27 scripts de C# (unas 4.700 líneas) y una escena principal. Fue un proyecto de la Universidad.
+- **Arquitectura:** MVC desacoplado por eventos de C# y patrón Repository para la persistencia. Cada decisión está documentada como ADR al final de este README.
+- **Backend:** Unity Gaming Services (autenticación anónima y Cloud Save), con exportación local a CSV y SQLite.
+- **Calidad:** el cálculo físico está aislado en una clase pura, con tests unitarios NUnit en el Test Runner.
+
 ---
 
 ## Guía de Uso
@@ -109,7 +118,7 @@ Ubicadas en `Assets/_Project/Scripts/Tests/BulletPhysicsTests.cs`, ejecutables d
 - **ADR-04: Estrategia de Claves para Historial en Cloud Save**
   - *Contexto:* Necesidad de registrar múltiples disparos independientes sin sobrescribir las claves de configuración del usuario.
   - *Decisión:* Asignar identificadores únicos a cada registro con prefijo común (`simulation_<GUID>`) y recuperarlos mediante filtrado con `LoadAllAsync()`.
-  - *Consecuencia:* Trazabilidad completa de simulaciones pasadas cumpliendo con los estándares de diseño de persistencia de cátedra.
+  - *Consecuencia:* Trazabilidad completa de simulaciones pasadas cumpliendo con los buenas prácticas de diseño de persistencia.
 
 - **ADR-05: Redundancia de Exportación Local (SQLite y CSV)**
   - *Contexto:* Permitir la auditoría y análisis de datos fuera del entorno de Unity.
