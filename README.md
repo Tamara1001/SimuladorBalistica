@@ -2,6 +2,8 @@
 
 Simulador balístico interactivo desarrollado en Unity. Permite configurar parámetros físicos en tiempo real, proyectar trayectorias analíticas, resolver la simulación física de proyectiles e impactos contra estructuras destructibles de cuerpos rígidos, y gestionar la persistencia tanto local como remota mediante Unity Gaming Services (UGS).
 
+**▶ [Jugar en el navegador (itch.io)](https://tamara1001.itch.io/simuladorbalistico)**
+
 > **Video de demostración:** https://youtu.be/swQaoImI_dY
 
 ## De un vistazo
